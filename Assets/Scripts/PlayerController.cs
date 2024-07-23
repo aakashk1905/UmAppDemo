@@ -2,12 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using Fusion;
 using Fusion.Addons.Physics;
+using TMPro;
+using Unity.VisualScripting;
+using UnityEngine.UIElements;
 
 public class PlayerController : NetworkBehaviour
 {
     [SerializeField] private float _speed = 5f;
     [SerializeField] private NetworkRigidbody2D _rb;
     [SerializeField] public Sprite[] _sprites;
+    public NetworkString<_16> PlayerName { get; set; }
 
     private int _playerID;
     public string _channelName;
@@ -18,10 +22,10 @@ public class PlayerController : NetworkBehaviour
     private AgoraManager _agoraManager;
     public Dictionary<string, string> tokens = new Dictionary<string, string>();
 
-    private void Start()
+    public override void Spawned()
     {
         _player = GetComponent<SpriteRenderer>();
-        _playerID = SetPlayerID();
+        RPC_SetNickname(GameManager.instance._playername);
         _agoraManager = AgoraManager.Instance;
     }
 
@@ -37,7 +41,7 @@ public class PlayerController : NetworkBehaviour
             _rb.Rigidbody.velocity = _direction * _speed;
         }
     }
-
+    #region Collison Management
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.gameObject.tag == "Player" && !neighbours.Contains(collision.gameObject.GetComponent<PlayerController>()))
@@ -163,7 +167,7 @@ public class PlayerController : NetworkBehaviour
             }
         }
     }
-
+    #endregion
     public string GetChannelName() { return _channelName; }
     public void SetChannelName(string name) { _channelName = name; }
 
@@ -178,6 +182,12 @@ public class PlayerController : NetworkBehaviour
     }
 
     public int GetPlayerId() { return _playerID; }
-    public static int SetPlayerID() => UnityEngine.Random.Range(10000, 99999);
+    [Rpc]
+    public void RPC_SetNickname(int nick)
+    {
+        _playerID = nick;
+        transform.name = "player" + _playerID.ToString();
+        GetComponentInChildren<TMP_Text>().text = _playerID.ToString();
+    }
     public void TriggerJoin(PlayerController _playerController) => _agoraManager.JoinChannel(this, _playerController);
 }

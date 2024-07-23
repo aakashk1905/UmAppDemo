@@ -5,6 +5,7 @@ using UnityEngine;
 using System;
 using Fusion.Sockets;
 using Unity.Mathematics;
+using TMPro;
 
 public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
@@ -35,24 +36,8 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
         if (player == runner.LocalPlayer)
         {
             localPlayer = _runner.Spawn(_player, GenerateRandomPosition(), Quaternion.identity);
-            StartCoroutine(DelayedNameSetting());
         }
     }
-
-    private IEnumerator DelayedNameSetting()
-    {
-       
-        yield return new WaitForSeconds(0.1f);
-        RPC_SettingName();
-    }
-
-    [Rpc]
-    private void RPC_SettingName()
-    {
-        localPlayer.name = "Player" + UnityEngine.Random.Range(1, 1000);
-    }
-
-
     public static Vector2 GenerateRandomPosition()
     {
         Vector2 min = new Vector2(30, 15);
