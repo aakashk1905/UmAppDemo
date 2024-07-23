@@ -465,6 +465,7 @@ namespace Agora.Rtc
         /// </summary>
         ///
         VIDEO_SOURCE_UNKNOWN = 100,
+        VIDEO_SOURCE_LOCAL = 101,
     }
 
     ///

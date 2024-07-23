@@ -126,6 +126,9 @@ MonoBehaviour:
   _sprites:
   - {fileID: 21300000, guid: b1e13f72e04f09e4186143791b0c7c6b, type: 3}
   - {fileID: 21300000, guid: e5157c5bd27f2f940966328cc1f60276, type: 3}
+  _channelName: 
+  _token: 
+  _player: {fileID: 0}
 --- !u!50 &-6247914522317609440
 Rigidbody2D:
   serializedVersion: 4

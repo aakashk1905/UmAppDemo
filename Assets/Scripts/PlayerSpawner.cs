@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using Fusion.Sockets;
+using Unity.Mathematics;
 
 public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
     private NetworkRunner _runner;
     [SerializeField] private GameObject _player;
+    private NetworkObject localPlayer;
 
     public void Host()
     {
@@ -32,9 +34,25 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (player == runner.LocalPlayer)
         {
-            _runner.Spawn(_player, GenerateRandomPosition(), Quaternion.identity);
+            localPlayer = _runner.Spawn(_player, GenerateRandomPosition(), Quaternion.identity);
+            StartCoroutine(DelayedNameSetting());
         }
     }
+
+    private IEnumerator DelayedNameSetting()
+    {
+       
+        yield return new WaitForSeconds(0.1f);
+        RPC_SettingName();
+    }
+
+    [Rpc]
+    private void RPC_SettingName()
+    {
+        localPlayer.name = "Player" + UnityEngine.Random.Range(1, 1000);
+    }
+
+
     public static Vector2 GenerateRandomPosition()
     {
         Vector2 min = new Vector2(30, 15);
@@ -60,8 +78,15 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
-
+        PlayerController _player = localPlayer.GetComponent<PlayerController>();
+        foreach (PlayerController playerController in _player.neighbours)
+        {
+            playerController.HandleOnTriggerExit(_player);
+            _player.HandleOnTriggerExit(playerController);
+        }
+        runner.Despawn(localPlayer);
     }
+
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
