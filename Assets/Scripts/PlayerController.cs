@@ -13,7 +13,7 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] public Sprite[] _sprites;
     public NetworkString<_16> PlayerName { get; set; }
 
-    private int _playerID;
+    public int _playerID;
     public string _channelName;
     public string _token;
     public SpriteRenderer _player;
@@ -25,20 +25,30 @@ public class PlayerController : NetworkBehaviour
     public override void Spawned()
     {
         _player = GetComponent<SpriteRenderer>();
-        RPC_SetNickname(GameManager.instance._playername);
+        if (Object.HasInputAuthority)
+        {
+            if(_playerID == 0)
+            {
+                RPC_SetNickname(GameManager.instance._playername);
+            }
+        }
+        transform.name = "player" + _playerID.ToString();
+        GetComponentInChildren<TMP_Text>().text = _playerID.ToString();
         _agoraManager = AgoraManager.Instance;
     }
 
     public override void FixedUpdateNetwork()
     {
-        if (HasStateAuthority)
+        if (HasInputAuthority)
         {
-            float moveX = UnityEngine.Input.GetAxis("Horizontal");
-            float moveY = UnityEngine.Input.GetAxis("Vertical");
+            Debug.Log("i have input authority");
+            if(GetInput(out NetworkInputData data))
+            {
+                Debug.Log("This is the input"+data.direction.normalized);
+                _direction = data.direction.normalized;
+                _rb.Rigidbody.velocity = _direction * _speed;
+            }
 
-            _direction = new Vector2(moveX, moveY).normalized;
-
-            _rb.Rigidbody.velocity = _direction * _speed;
         }
     }
     #region Collison Management
@@ -182,12 +192,10 @@ public class PlayerController : NetworkBehaviour
     }
 
     public int GetPlayerId() { return _playerID; }
-    [Rpc]
+    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
     public void RPC_SetNickname(int nick)
     {
         _playerID = nick;
-        transform.name = "player" + _playerID.ToString();
-        GetComponentInChildren<TMP_Text>().text = _playerID.ToString();
     }
     public void TriggerJoin(PlayerController _playerController) => _agoraManager.JoinChannel(this, _playerController);
 }

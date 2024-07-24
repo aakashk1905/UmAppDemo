@@ -15,7 +15,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
     public void Host()
     {
-        StartGame(GameMode.Shared);
+        StartGame(GameMode.AutoHostOrClient);
     }
 
 
@@ -33,9 +33,10 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        if (player == runner.LocalPlayer)
+        if (_runner.IsServer)
         {
-            localPlayer = _runner.Spawn(_player, GenerateRandomPosition(), Quaternion.identity);
+            localPlayer = _runner.Spawn(_player, GenerateRandomPosition(), Quaternion.identity, player);
+            localPlayer.GetComponent<PlayerController>()._playerID = GameManager.instance._playername;
         }
     }
     public static Vector2 GenerateRandomPosition()
@@ -75,6 +76,21 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
+        var data = new NetworkInputData();
+
+        if (Input.GetKey(KeyCode.W))
+            data.direction += Vector2.up;
+
+        if (Input.GetKey(KeyCode.S))
+            data.direction += Vector2.down;
+
+        if (Input.GetKey(KeyCode.A))
+            data.direction += Vector2.left;
+
+        if (Input.GetKey(KeyCode.D))
+            data.direction += Vector2.right;
+
+        input.Set(data);
     }
 
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
