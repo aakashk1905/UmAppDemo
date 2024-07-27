@@ -50,9 +50,9 @@ public class PlayerController : NetworkBehaviour
     {
         if (collision.gameObject.tag == "Player" && !neighbours.Contains(collision.gameObject.GetComponent<PlayerController>()))
         {
-            neighbours.Add(collision.gameObject.GetComponent<PlayerController>());
             PlayerController otherPlayer = collision.gameObject.GetComponent<PlayerController>();
-            _agoraManager.JoinChannel(this, otherPlayer);
+            neighbours.Add(otherPlayer);
+            JoinChannelWithPlayer(otherPlayer);
             _player.sprite = _sprites[1];
         }
     }
@@ -110,6 +110,10 @@ public class PlayerController : NetworkBehaviour
             HandleOnTriggerExit(collision.gameObject.GetComponent<PlayerController>());
         }
 
+    }
+    private void JoinChannelWithPlayer(PlayerController otherPlayer)
+    {
+        _agoraManager.JoinChannel(this, otherPlayer);
     }
     public void HandleOnTriggerExit(PlayerController otherPlayer)
     {
