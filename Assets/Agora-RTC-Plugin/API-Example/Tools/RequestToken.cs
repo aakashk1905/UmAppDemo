@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 
 
+
 namespace Agora_RTC_Plugin.API_Example
 {
     [Serializable]
@@ -11,6 +12,7 @@ namespace Agora_RTC_Plugin.API_Example
     {
         public string token;
     }
+
 
     public static class HelperClass
     {

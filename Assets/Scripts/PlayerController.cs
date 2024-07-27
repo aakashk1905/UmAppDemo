@@ -13,7 +13,9 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] public Sprite[] _sprites;
     public NetworkString<_16> PlayerName { get; set; }
 
-    public int _playerID;
+    [Networked]
+    private int _playerID { get; set; }
+
     public string _channelName;
     public string _token;
     public SpriteRenderer _player;
@@ -24,16 +26,21 @@ public class PlayerController : NetworkBehaviour
 
     public override void Spawned()
     {
+       
         _player = GetComponent<SpriteRenderer>();
+       
         if (Object.HasInputAuthority)
-        {
-            if(_playerID == 0)
+        { 
+            if (_playerID == 0)
             {
-                RPC_SetNickname(GameManager.instance._playername);
+                int id = Random.Range(0, 1000);
+                RPC_SetNickname(id);
+
             }
+           
         }
-        transform.name = "player" + _playerID.ToString();
-        GetComponentInChildren<TMP_Text>().text = _playerID.ToString();
+        transform.name = "Player" + _playerID;
+        GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
         _agoraManager = AgoraManager.Instance;
         _rb = GetComponent<NetworkRigidbody2D>();
     }
@@ -43,6 +50,11 @@ public class PlayerController : NetworkBehaviour
         if (GetInput(out NetworkInputData input))
         {
             _rb.Rigidbody.velocity = input.directions * moveSpeed;
+        }
+        if(_playerID != 0)
+        {
+            transform.name = "Player" + _playerID;
+            GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
         }
     }
     #region Collison Management
@@ -57,52 +69,6 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
-    /*private void OnTriggerExit2D(Collider2D collision)
-    {
-        if (collision.gameObject.tag == "Player" && neighbours.Contains(collision.gameObject.GetComponent<PlayerController>()))
-        {
-            PlayerController otherPlayer = collision.gameObject.GetComponent<PlayerController>();
-            neighbours.Remove(otherPlayer);
-            otherPlayer.neighbours.Remove(this);
-
-            if (neighbours.Count <= 0)
-            {
-                string channel = GetChannelName();
-                _agoraManager.LeaveChannel(this);
-                _agoraManager.Rpc_UpdateNetworkTable("remove", channel, this);
-                _player.sprite = _sprites[0];
-
-                if (otherPlayer.neighbours.Count == 0)
-                {
-                    _agoraManager.LeaveChannel(otherPlayer);
-                    _agoraManager.Rpc_UpdateNetworkTable("remove", channel, otherPlayer);
-                    otherPlayer._player.sprite = _sprites[0];
-                }
-            }
-            else
-            {
-                List<PlayerController> connectedPlayers = new List<PlayerController>(_agoraManager.networkTable[_channelName]);
-                HashSet<PlayerController> checkedPlayers = new HashSet<PlayerController>();
-
-                foreach (PlayerController player in connectedPlayers)
-                {
-                    if (!checkedPlayers.Contains(player) && player.neighbours.Count >= 1)
-                    {
-                        string newChannelName = _agoraManager.GenerateChannelName();
-                        AddMeAndNeighbours(player, newChannelName, new List<PlayerController>(), checkedPlayers);
-                    }
-                    else
-                    {
-                        _agoraManager.LeaveChannel(player);
-                        _agoraManager.Rpc_UpdateNetworkTable("remove", player.GetChannelName(), player);
-                        player._player.sprite = _sprites[0];
-                    }
-                }
-            }
-        }
-    }*/
-
-
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.gameObject.tag == "Player" && neighbours.Contains(collision.gameObject.GetComponent<PlayerController>()))
@@ -115,6 +81,7 @@ public class PlayerController : NetworkBehaviour
     {
         _agoraManager.JoinChannel(this, otherPlayer);
     }
+
     public void HandleOnTriggerExit(PlayerController otherPlayer)
     {
 
@@ -160,7 +127,6 @@ public class PlayerController : NetworkBehaviour
 
     }
 
-
     private void AddMeAndNeighbours(PlayerController player, string channelName, List<PlayerController> listOfNewPlayers, HashSet<PlayerController> checkedPlayers)
     {
         _agoraManager.LeaveChannel(player);
@@ -194,6 +160,8 @@ public class PlayerController : NetworkBehaviour
     public void RPC_SetNickname(int nick)
     {
         _playerID = nick;
+       
     }
     public void TriggerJoin(PlayerController _playerController) => _agoraManager.JoinChannel(this, _playerController);
 }
+

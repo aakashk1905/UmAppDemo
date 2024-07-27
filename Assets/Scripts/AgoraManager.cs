@@ -350,8 +350,6 @@ public class AgoraManager : MonoBehaviour
             {
                 Destroy(videoView);
             }
-
-            Debug.Log("OnLeave Called ===========================================");
         }
 
 
