@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 
 public class PlayerController : NetworkBehaviour
 {
-    [SerializeField] private float _speed = 5f;
+    [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private NetworkRigidbody2D _rb;
     [SerializeField] public Sprite[] _sprites;
     public NetworkString<_16> PlayerName { get; set; }
@@ -35,20 +35,14 @@ public class PlayerController : NetworkBehaviour
         transform.name = "player" + _playerID.ToString();
         GetComponentInChildren<TMP_Text>().text = _playerID.ToString();
         _agoraManager = AgoraManager.Instance;
+        _rb = GetComponent<NetworkRigidbody2D>();
     }
 
     public override void FixedUpdateNetwork()
     {
-        if (HasInputAuthority)
+        if (GetInput(out NetworkInputData input))
         {
-            Debug.Log("i have input authority");
-            if(GetInput(out NetworkInputData data))
-            {
-                Debug.Log("This is the input"+data.direction.normalized);
-                _direction = data.direction.normalized;
-                _rb.Rigidbody.velocity = _direction * _speed;
-            }
-
+            _rb.Rigidbody.velocity = input.directions * moveSpeed;
         }
     }
     #region Collison Management
