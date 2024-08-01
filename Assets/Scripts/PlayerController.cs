@@ -60,10 +60,13 @@ public class PlayerController : NetworkBehaviour
     #region Collison Management
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        Debug.Log("Collision entered");
         if (collision.gameObject.tag == "Player" && !neighbours.Contains(collision.gameObject.GetComponent<PlayerController>()))
         {
+
             PlayerController otherPlayer = collision.gameObject.GetComponent<PlayerController>();
             neighbours.Add(otherPlayer);
+            Debug.Log("Neighbour added" + neighbours.Count);
             JoinChannelWithPlayer(otherPlayer);
             _player.sprite = _sprites[1];
         }
