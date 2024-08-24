@@ -5,6 +5,9 @@ TagManager:
   serializedVersion: 2
   tags:
   - VideoSurface
+  - Plane
+  - Room
+  - Locked
   layers:
   - Default
   - TransparentFX
@@ -15,8 +18,8 @@ TagManager:
   - Aura
   - Player
   - Ground
-  - 
-  - 
+  - boundary
+  - Room
   - 
   - 
   - 

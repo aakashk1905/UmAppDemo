@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 using Fusion;
 using Fusion.Addons.Physics;
@@ -19,11 +20,14 @@ public class PlayerController : NetworkBehaviour
     public string _channelName;
     public string _token;
     public SpriteRenderer _player;
-    private Vector2 _direction;
     public List<PlayerController> neighbours = new List<PlayerController>();
     private AgoraManager _agoraManager;
     public Dictionary<string, string> tokens = new Dictionary<string, string>();
-
+    private float lastClickTime;
+    private float doubleClickTime = 0.3f;
+    private bool isTeleporting = false;
+    private Vector2 _direction;
+    private Vector3 _updatedPosition = Vector3.zero;
     public override void Spawned()
     {
        
@@ -45,18 +49,107 @@ public class PlayerController : NetworkBehaviour
         _rb = GetComponent<NetworkRigidbody2D>();
     }
 
-    public override void FixedUpdateNetwork()
+public override void FixedUpdateNetwork()
+{   
+    if (Object.HasInputAuthority)
     {
+
         if (GetInput(out NetworkInputData input))
         {
-            _rb.Rigidbody.velocity = input.directions * moveSpeed;
-        }
-        if(_playerID != 0)
-        {
-            transform.name = "Player" + _playerID;
-            GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
+            if (_updatedPosition != Vector3.zero)
+            {
+                if (isTeleporting)
+                {
+                    _rb.Rigidbody.velocity = Vector2.zero;
+                    return;
+                }
+                Debug.Log($"Teleporting to position: {_updatedPosition}");
+                _rb.Rigidbody.position = _updatedPosition;
+
+            
+                UpdateNetworkPosition(_updatedPosition);
+                _updatedPosition = Vector3.zero; // Reset 
+            }
+            else
+            {
+                _rb.Rigidbody.velocity = input.directions * moveSpeed;
+            }
         }
     }
+
+    if (_playerID != 0)
+    {
+        transform.name = "Player" + _playerID;
+        GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
+    }
+}
+private void Update()
+{
+    if (isTeleporting) return;
+    if (Input.GetMouseButtonDown(0))
+    {
+        if (Time.time - lastClickTime < doubleClickTime)
+        {
+            Debug.Log("Double click detected. Teleporting player.");
+            TeleportPlayerToMousePosition();
+        }
+        lastClickTime = Time.time;
+    }
+}
+
+private void TeleportPlayerToMousePosition()
+{
+    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+    RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction);
+
+    if (hit.collider != null && hit.collider.CompareTag("Plane"))
+    {
+        Vector3 targetPosition = hit.point;
+        Debug.Log($"Hit detected on Plane. Target Position: {targetPosition}");
+        _updatedPosition = targetPosition;
+
+        StartCoroutine(SmoothTeleport(targetPosition));
+    }
+    else
+    {
+        Debug.Log("No hit detected or hit object is not Plane.");
+    }
+}
+
+private IEnumerator SmoothTeleport(Vector3 targetPosition)
+    {
+        isTeleporting = true;
+        Debug.Log($"Smooth teleport started to {targetPosition}.");
+
+        float duration = 1.0f;
+        float elapsed = 0f;
+        Vector3 startPosition = transform.position;
+
+        while (elapsed < duration)
+        {
+            transform.position = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
+            
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = targetPosition;
+        // Update immediately
+        UpdateNetworkPosition(targetPosition);
+
+        isTeleporting = false;
+    }
+    
+    private void UpdateNetworkPosition(Vector3 newPosition)
+    {
+        if (Object.HasStateAuthority)
+        {
+            transform.position = newPosition;
+            Debug.Log($"Position synchronized across the network: {newPosition}");
+        }
+    }
+
+
     #region Collison Management
     private void OnTriggerEnter2D(Collider2D collision)
     {
@@ -79,6 +172,12 @@ public class PlayerController : NetworkBehaviour
     }
     private void JoinChannelWithPlayer(PlayerController otherPlayer)
     {
+        if (_agoraManager == null)
+        {
+        Debug.LogError("AgoraManager is not initialized!");
+        return;
+        }
+    
         _agoraManager.JoinChannel(this, otherPlayer);
     }
 
