@@ -7,6 +7,7 @@ using Fusion.Sockets;
 using Unity.Mathematics;
 using TMPro;
 using UnityEngine.SceneManagement;
+using static Unity.Collections.Unicode;
 
 public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
@@ -20,6 +21,8 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
         networkRunner = gameObject.AddComponent<NetworkRunner>();
         networkRunner.ProvideInput = true;
+
+       
 
         //Scene info
         var scene = SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex);

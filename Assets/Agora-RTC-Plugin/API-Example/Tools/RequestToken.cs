@@ -20,7 +20,7 @@ namespace Agora_RTC_Plugin.API_Example
         {
             using (UnityWebRequest request = UnityWebRequest.Get(string.Format("{0}?channel={1}&userId={2}", url, channel, userId)))
             {
-                //Debug.Log("Request" + url + channel + userId);
+                
                 yield return request.SendWebRequest();
                 if (request.isNetworkError || request.isHttpError)
                 {
@@ -29,10 +29,7 @@ namespace Agora_RTC_Plugin.API_Example
                     yield break;
                 }
 
-                //Debug.Log("Response: " + request.downloadHandler.text);
                 TokenObject tokenInfo = JsonUtility.FromJson<TokenObject>(request.downloadHandler.text);
-                //Debug.Log("Token: " + tokenInfo.token);
-
                 callback?.Invoke(tokenInfo.token);
             }
         }

@@ -1,282 +1,24 @@
-/*using System.Collections.Generic;
-using UnityEngine;
-using Fusion;
-using Fusion.Addons.Physics;
-using TMPro;
-using Unity.VisualScripting;
-using UnityEngine.UIElements;
-using WebSocketSharp;
-using System;
-using ExitGames.Client.Photon.StructWrapping;
-
-
-public class PlayerController : NetworkBehaviour
-{
-    [SerializeField] private float moveSpeed = 2f;
-    [SerializeField] private NetworkRigidbody2D _rb;
-    [SerializeField] public Sprite[] _sprites;
-
-    public bool IamBridge = false;
-    private ChangeDetector _changeDetector;
-
-    public NetworkString<_16> PlayerName { get; set; }
-    [Networked, OnChangedRender(nameof(OnPlayerIdChanged))]
-    public int _playerID { get; set; }
-    [Networked, OnChangedRender(nameof(OnChannelChanged))]
-    public NetworkString<_128> _channelName { get; set; } = "dummy";
-    public string myChannel = "";
-    public string prevChannel = "";
-    public string _token;
-    public bool isInChannel = false;
-    public SpriteRenderer _player;
-    private Vector2 _direction;
-    public List<PlayerController> neighbours = new List<PlayerController>();
-    public AgoraManager _agoraManager;
-    public Dictionary<string, string> tokens = new Dictionary<string, string>();
-    public override void Spawned()
-    {
-        _player = GetComponent<SpriteRenderer>();
-        if (Object.HasInputAuthority)
-        {
-            if (_playerID == 0)
-            {
-                int id = UnityEngine.Random.Range(0, 1000);
-                RPC_SetNickname(id);
-            }
-        }
-        transform.name = "Player" + _playerID;
-        GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
-        _agoraManager = AgoraManager.Instance;
-        _rb = GetComponent<NetworkRigidbody2D>();
-        _changeDetector = new ChangeDetector();
-    }
-
-    public override void FixedUpdateNetwork()
-    {
-        if (GetInput(out NetworkInputData input))
-        {
-            _rb.Rigidbody.velocity = input.directions * moveSpeed;
-        }
-
-    }
-
-
-    public void OnPlayerIdChanged()
-    {
-        if (_playerID != 0)
-        {
-            transform.name = "Player" + _playerID;
-            GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
-        }
-    }
-    public void OnChannelChanged()
-    {
-        
-            prevChannel = myChannel;
-            myChannel = _channelName.Value;
-            Debug.LogError(_channelName.Value + " =====" + _playerID);
-            if (!_channelName.Value.IsNullOrEmpty() && _channelName.Value != "dummy" && !isInChannel)
-            {
-                _agoraManager.AddPlayerToChannel(_channelName.Value, this);
-            }
-        
-    }
-    private bool isnullorDummy(String name)
-    {
-        return name.IsNullOrEmpty() || name == "dummy";
-    }
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.gameObject.tag == "Player" && !neighbours.Contains(collision.gameObject.GetComponent<PlayerController>()))
-        {
-            if (Object.HasStateAuthority)
-            {
-                PlayerController otherPlayer = collision.gameObject.GetComponent<PlayerController>();
-                RPC_JoinChannelWithPlayer(otherPlayer);
-            }
-            else
-            {
-                PlayerController otherPlayer = collision.gameObject.GetComponent<PlayerController>();
-                RPC_RequestJoinChannelWithPlayer(otherPlayer);
-            }
-        }
-    }
-
-    private void OnTriggerExit2D(Collider2D collision)
-    {
-        if (collision.gameObject.tag == "Player")
-        {
-            if (Object.HasStateAuthority)
-            {
-                PlayerController otherPlayer = collision.gameObject.GetComponent<PlayerController>();
-                RPC_HandleOnTriggerExit(otherPlayer);
-            }
-            else
-            {
-                PlayerController otherPlayer = collision.gameObject.GetComponent<PlayerController>();
-                RPC_RequestHandleOnTriggerExit(otherPlayer);
-            }
-        }
-    }
-
-    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-    private void RPC_RequestJoinChannelWithPlayer(PlayerController otherPlayer)
-    {
-        RPC_JoinChannelWithPlayer(otherPlayer);
-    }
-
-    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-    private void RPC_RequestHandleOnTriggerExit(PlayerController otherPlayer)
-    {
-        RPC_HandleOnTriggerExit(otherPlayer);
-    }
-
-    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-    private void RPC_JoinChannelWithPlayer(PlayerController otherPlayer)
-    {
-        if (Object.HasInputAuthority)
-        {
-            neighbours.Add(otherPlayer);
-            Debug.LogError("Collision happened" + _playerID + otherPlayer._playerID);
-
-            if (isnullorDummy(_channelName.Value) && isnullorDummy(otherPlayer._channelName.Value))
-            {
-                Rpc_SetChannelName(_agoraManager.GenerateChannelName("" + _playerID));
-
-            }
-            else if (isnullorDummy(_channelName.Value) && !isnullorDummy(otherPlayer._channelName.Value))
-            {
-                Rpc_SetChannelName(otherPlayer._channelName.Value);
-            }
-            else if (!isnullorDummy(_channelName.Value) && !isnullorDummy(otherPlayer._channelName.Value))
-            {
-                IamBridge = true;
-                if (_agoraManager.Bridges.TryGetValue(_channelName.Value, out int currentValue))
-                {
-                    _agoraManager.Bridges[_channelName.Value] = currentValue + 1;
-                }
-                else
-                {
-                    _agoraManager.Bridges.Add(_channelName.Value, 1);
-                }
-                _agoraManager.MergeChannels(_channelName.Value, otherPlayer._channelName.Value);
-            }
-        }
-        
-        _player.sprite = _sprites[1];
-    }
-
-    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-    public void RPC_HandleOnTriggerExit(PlayerController otherPlayer)
-    {
-        Debug.LogError("lving === " + _playerID);
-        bool change = false;
-        if (Object.HasInputAuthority)
-        {
-            if (neighbours.Contains(otherPlayer))
-                neighbours.Remove(otherPlayer);
-
-            if (neighbours.Count <= 0)
-            {
-                string channel = _agoraManager._channelName;
-                _agoraManager.LeaveChannel(this);
-                _agoraManager.Rpc_UpdateNetworkTable("remove", channel, this);
-                change = true;
-            }
-            else
-            {
-                string channel = myChannel;
-                if (IamBridge)
-                {
-                    IamBridge = false;
-                    if (_agoraManager.Bridges.TryGetValue(_channelName.Value, out int currentValue))
-                    {
-                        _agoraManager.Bridges[_channelName.Value] = currentValue - 1;
-                        if (currentValue == 1)
-                        {
-                            HashSet<PlayerController> processedPlayers = new HashSet<PlayerController>();
-                            ChangeChannelForPlayerAndNeighboursRecursively(otherPlayer, processedPlayers);
-                        }
-                    }
-                }
-            }
-        }
-        if(change)
-           _player.sprite = _sprites[0];
-
-    }
-
-    private void ChangeChannelForPlayerAndNeighboursRecursively(PlayerController otherPlayer, HashSet<PlayerController> processedPlayers)
-    {
-        processedPlayers.Add(otherPlayer);
-        string tempPreChannel = otherPlayer.prevChannel;
-        _agoraManager.LeaveChannel(otherPlayer);
-        otherPlayer._channelName = tempPreChannel;
-
-        foreach (PlayerController neighbour in otherPlayer.neighbours)
-        {
-            if (!processedPlayers.Contains(neighbour))
-            {
-                ChangeChannelForPlayerAndNeighboursRecursively(neighbour, processedPlayers);
-            }
-        }
-    }
-
-    public string GetChannelName() { return _channelName.Value; }
-
-    public void Rpc_SetChannelName(string name)
-    {
-        _channelName = name;
-        Debug.LogError("Change Channel called");
-    }
-
-
-    public string GetToken() { return _token; }
-    public void RpcSetToken(string newToken)
-    {
-        if (!string.IsNullOrEmpty(newToken))
-        {
-            Debug.Log("Setting Token for " + this.name);
-        }
-        _token = newToken;
-    }
-
-    public int GetPlayerId() { return _playerID; }
-
-    
-    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-    public void RPC_SetNickname(int nick)
-    {
-        _playerID = nick;
-
-    }
-    public void TriggerJoin(PlayerController _playerController) => _agoraManager.JoinChannel(this, _playerController);
-}
-
-
-
-
-*/
-
-
-
-
 using System.Collections.Generic;
 using UnityEngine;
 using Fusion;
 using Fusion.Addons.Physics;
 using TMPro;
-using Unity.VisualScripting;
-using UnityEngine.UIElements;
+
 using WebSocketSharp;
 using System;
-using ExitGames.Client.Photon.StructWrapping;
+
+using System.Linq;
+using System.Collections;
 
 public class PlayerController : NetworkBehaviour
 {
     [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private NetworkRigidbody2D _rb;
     [SerializeField] public Sprite[] _sprites;
+
+    public NetworkTableManager networkTableManager;
+    public NetworkedDSU _networkedDSU;
+
 
     public bool IamBridge = false;
     private ChangeDetector _changeDetector;
@@ -284,7 +26,7 @@ public class PlayerController : NetworkBehaviour
     [Networked, OnChangedRender(nameof(OnPlayerIdChanged))]
     public int _playerID { get; set; }
     [Networked, OnChangedRender(nameof(OnChannelChanged))]
-    public NetworkString<_128> _channelName { get; set; } = "dummy";
+    public NetworkString<_128> _channelName { get; set; } = "";
     public string myChannel  = "";
     public string prevChannel  = "";
     public string _token = "";
@@ -305,12 +47,31 @@ public class PlayerController : NetworkBehaviour
                 int id = UnityEngine.Random.Range(0, 1000);
                 RPC_SetNickname(id);
             }
+           
         }
+
         transform.name = "Player" + _playerID;
         GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
+
+        _agoraManager = AgoraManager.Instance;
         _agoraManager = AgoraManager.Instance;
         _rb = GetComponent<NetworkRigidbody2D>();
         _changeDetector = new ChangeDetector();
+        _channelName = "";
+        networkTableManager = NetworkTableManager.Instance;
+        _networkedDSU = NetworkedDSU.Instance;
+        if (Object.HasStateAuthority)
+        {
+            if (_networkedDSU != null)
+            {
+                _networkedDSU.MakeSet(Object.InputAuthority);
+            }
+            else
+            {
+                Debug.LogError("NetworkedDSU is not initialized!");
+            }
+        }
+
     }
 
     public override void FixedUpdateNetwork()
@@ -336,17 +97,34 @@ public class PlayerController : NetworkBehaviour
         {
             prevChannel = myChannel;
             myChannel = _channelName.Value;
-            Debug.LogError(_channelName.Value + " =====" + _playerID);
+            Debug.LogError(_channelName.Value + " =====" + _playerID + " ==========" + isInChannel);
             if (!_channelName.Value.IsNullOrEmpty() && _channelName.Value != "dummy" && !isInChannel)
             {
                 _agoraManager.AddPlayerToChannel(_channelName.Value, this);
+                if (Object.HasStateAuthority)
+                {
+                    networkTableManager.Rpc_UpdateNetworkTable("add", _channelName.Value, this.Object.InputAuthority);
+                }
+                else
+                {
+                    Rpc_RequestTableUpdate("add", _channelName.Value, this.Object.InputAuthority);
+                }
+               
             }
+            Runner.StartCoroutine(LogNetworkTableWithDelay());
+
         }
     }
-
-    private bool isnullorDummy(String name)
+    private IEnumerator LogNetworkTableWithDelay()
     {
-        return name.IsNullOrEmpty() || name == "dummy";
+        yield return new WaitForSeconds(1f);
+        LogNetworkTable();
+    }
+
+    private bool IsnullorDummy(String name)
+    {
+      
+        return String.IsNullOrEmpty(name) || name == "dummy";
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -358,18 +136,21 @@ public class PlayerController : NetworkBehaviour
             {
                 if (Object.HasStateAuthority)
                 {
-                    // Server-side logic
                     HandleCollisionEnter(otherPlayer);
                 }
                 else
                 {
-                    // Client-side request
                     RPC_RequestHandleCollisionEnter(otherPlayer.Object.InputAuthority);
                 }
             }
         }
     }
 
+    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
+    public void Rpc_RequestTableUpdate(string action, string channelName,PlayerRef player)
+    {
+        HandleTableUpdate(action, channelName, player);
+    }
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.gameObject.tag == "Player")
@@ -379,12 +160,11 @@ public class PlayerController : NetworkBehaviour
             {
                 if (Object.HasStateAuthority)
                 {
-                    // Server-side logic
+                    
                     HandleCollisionExit(otherPlayer);
                 }
                 else
                 {
-                    // Client-side request
                     RPC_RequestHandleCollisionExit(otherPlayer.Object.InputAuthority);
                 }
             }
@@ -404,108 +184,244 @@ public class PlayerController : NetworkBehaviour
         PlayerController otherPlayer = Runner.GetPlayerObject(otherPlayerRef).GetComponent<PlayerController>();
         HandleCollisionExit(otherPlayer);
     }
+    public void HandleTableUpdate(string action, string channel, PlayerRef player)
+    {
+        networkTableManager.Rpc_UpdateNetworkTable(action, channel, player);
+    }
 
     private void HandleCollisionEnter(PlayerController otherPlayer)
     {
-        if (!neighbours.Contains(otherPlayer.Object.InputAuthority))
-        {
-            RPC_JoinChannelWithPlayer(otherPlayer);
-        }
+        
+            if (!neighbours.Contains(otherPlayer.Object.InputAuthority))
+            {
+                neighbours.Add(otherPlayer.Object.InputAuthority);
+
+                if (_networkedDSU != null)
+                {
+                    _networkedDSU.Union(Object.InputAuthority, otherPlayer.Object.InputAuthority);
+                    Rpc_UpdateChannelsAfterUnion(otherPlayer);
+                }
+                else
+                {
+                    Debug.LogError("NetworkedDSU is not initialized!");
+                }
+            }
     }
 
-    private void HandleCollisionExit(PlayerController otherPlayer)
+
+    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.StateAuthority)]
+    private void Rpc_UpdateChannelsAfterUnion(PlayerController otherPlayer)
     {
-        RPC_HandleOnTriggerExit(otherPlayer);
-    }
-
-
-    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-    private void RPC_JoinChannelWithPlayer(PlayerController otherPlayer)
-    {
-        neighbours.Add(otherPlayer.Object.InputAuthority);
-        Debug.LogError("Collision happened" + _playerID + otherPlayer._playerID);
-
-        if (isnullorDummy(_channelName.Value) && isnullorDummy(otherPlayer._channelName.Value))
+        if (IsnullorDummy(_channelName.Value) && IsnullorDummy(otherPlayer._channelName.Value))
         {
-            Rpc_SetChannelName(_agoraManager.GenerateChannelName("" + _playerID));
+            string newChannel = _agoraManager.GenerateChannelName("" + _playerID);
+            Rpc_SetChannelName(newChannel);
         }
-        else if (isnullorDummy(_channelName.Value) && !isnullorDummy(otherPlayer._channelName.Value))
+        else if (IsnullorDummy(_channelName.Value) && !IsnullorDummy(otherPlayer._channelName.Value))
         {
             Rpc_SetChannelName(otherPlayer._channelName.Value);
         }
-        else if (!isnullorDummy(_channelName.Value) && !isnullorDummy(otherPlayer._channelName.Value))
+        else if (!IsnullorDummy(_channelName.Value) && !IsnullorDummy(otherPlayer._channelName.Value) &&
+            _channelName.Value != otherPlayer._channelName.Value)
         {
-            Debug.Log("testttt === " + _channelName.Value + otherPlayer._channelName.Value);
+            RpcMergeChannels(_channelName.Value, otherPlayer._channelName.Value);
+        }
+
+        _player.sprite = _sprites[1];
+    
+    }
+
+
+    private void HandleCollisionExit(PlayerController otherPlayer)
+    {
+        Debug.LogError($"Exit calledddd {_playerID}  {otherPlayer._playerID}");
+        RPC_HandleOnTriggerExit(otherPlayer);
+        
+    }
+
+
+    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.StateAuthority)]
+    private void RPC_JoinChannelWithPlayer(PlayerController otherPlayer)
+    {
+        neighbours.Add(otherPlayer.Object.InputAuthority);
+        Debug.LogError(_playerID + " "+neighbours.Count);
+        if (IsnullorDummy(_channelName.Value) && IsnullorDummy(otherPlayer._channelName.Value))
+        {
+            Rpc_SetChannelName(_agoraManager.GenerateChannelName("" + _playerID));
+        }
+        else if (IsnullorDummy(_channelName.Value) && !IsnullorDummy(otherPlayer._channelName.Value))
+        {
+            Rpc_SetChannelName(otherPlayer._channelName.Value);
+        }
+        else if (!IsnullorDummy(_channelName.Value) && !IsnullorDummy(otherPlayer._channelName.Value) &&
+            _channelName.Value != otherPlayer._channelName.Value)
+        {
             IamBridge = true;
             if (_agoraManager.Bridges.TryGetValue(_channelName.Value, out int currentValue))
             {
+
                 _agoraManager.Bridges[_channelName.Value] = currentValue + 1;
             }
             else
             {
                 _agoraManager.Bridges.Add(_channelName.Value, 1);
             }
-            _agoraManager.RpcMergeChannels(_channelName.Value, otherPlayer._channelName.Value);
+            RpcMergeChannels(_channelName.Value, otherPlayer._channelName.Value);
         }
 
         _player.sprite = _sprites[1];
     }
 
-    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-    public void RPC_HandleOnTriggerExit(PlayerController otherPlayer)
-    {
-        Debug.LogError("leaving === " + _playerID);
-        bool change = false;
+   
 
+    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.StateAuthority)]
+    private void RPC_HandleOnTriggerExit(PlayerController otherPlayer)
+    {
         if (neighbours.Contains(otherPlayer.Object.InputAuthority))
+        {
             neighbours.Remove(otherPlayer.Object.InputAuthority);
 
-        if (neighbours.Count <= 0)
-        {
-            string channel = _agoraManager._channelName;
-            _agoraManager.LeaveChannel(this);
-            _agoraManager.Rpc_UpdateNetworkTable("remove", channel, this);
-            change = true;
-        }
-        else
-        {
-            string channel = myChannel;
-            if (IamBridge)
+            if (_networkedDSU != null)
             {
-                IamBridge = false;
-                if (_agoraManager.Bridges.TryGetValue(_channelName.Value, out int currentValue))
-                {
-                    _agoraManager.Bridges[_channelName.Value] = currentValue - 1;
-                    if (currentValue == 1)
-                    {
-                        HashSet<PlayerController> processedPlayers = new HashSet<PlayerController>();
-                        ChangeChannelForPlayerAndNeighboursRecursively(otherPlayer, processedPlayers);
-                    }
-                }
+                ReorganizeGroupAfterExit(otherPlayer);
+            }
+            else
+            {
+                Debug.LogError("NetworkedDSU is not initialized!");
             }
         }
 
-        if (change)
-            _player.sprite = _sprites[0];
+        UpdatePlayerSprite();
     }
 
-    private void ChangeChannelForPlayerAndNeighboursRecursively(PlayerController otherPlayer, HashSet<PlayerController> processedPlayers)
+   
+    private void ReorganizeGroupAfterExit(PlayerController exitingPlayer)
     {
-        processedPlayers.Add(otherPlayer);
-        string tempPreChannel = otherPlayer.prevChannel;
-        _agoraManager.LeaveChannel(otherPlayer);
-        otherPlayer._channelName = tempPreChannel;
-
-        foreach (PlayerRef neighbourRef in otherPlayer.neighbours)
+        if (_networkedDSU == null)
         {
-            PlayerController neighbour = Runner.GetPlayerObject(neighbourRef).GetComponent<PlayerController>();
-            if (!processedPlayers.Contains(neighbour))
+            Debug.LogError("NetworkedDSU is not initialized!");
+            return;
+        }
+
+        string currentChannel = _channelName.Value;
+        _networkedDSU.DisconnectPlayer(exitingPlayer.Object.InputAuthority);
+
+        if (neighbours.Count == 0)
+        {
+            HandleChannelChange(this, currentChannel, "");
+            return;
+        }
+
+
+        // Get the updated groups
+        var groups = _networkedDSU.GetCurrentGroups();
+
+
+
+        if (groups.Count == 1)
+        {
+            return;
+        }
+
+        var largestGroup = groups.Values.OrderByDescending(g => g.Count).First();
+        foreach (var group in groups.Values)
+        {
+            if (group == largestGroup)
             {
-                ChangeChannelForPlayerAndNeighboursRecursively(neighbour, processedPlayers);
+                continue;
             }
+
+            string newChannel = "Split" + group.First();
+            foreach (var playerRef in group)
+            {
+                PlayerController playerController = Runner.GetPlayerObject(playerRef).GetComponent<PlayerController>();
+                HandleChannelChange(playerController, currentChannel, newChannel);
+            }
+        }
+
+        UpdatePlayerSprite();
+        LogNetworkTable();
+    }
+
+
+    private void HandleChannelChange(PlayerController player, string oldChannel, string newChannel)
+    { 
+        networkTableManager.Rpc_UpdateNetworkTable("remove", oldChannel, player.Object.InputAuthority);
+        if(!string.IsNullOrEmpty(newChannel))
+            networkTableManager.Rpc_UpdateNetworkTable("add", newChannel, player.Object.InputAuthority);
+        player.Rpc_LeaveChannel(player.Object.InputAuthority, oldChannel);
+        player.Rpc_SetIsInChannel(false);
+        player.Rpc_SetChannelName(newChannel);
+    }
+
+
+    
+    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+    private void Rpc_LeaveChannel(PlayerRef playerRef, string channel)
+    {
+        if (Object.HasInputAuthority)
+        {
+            PlayerController player = Runner.GetPlayerObject(playerRef).GetComponent<PlayerController>();
+            _agoraManager.LeaveChannel(player, channel);
         }
     }
 
+    private void UpdatePlayerSprite()
+    {
+        Rpc_UpdatePlayerSprite(neighbours.Count <= 0);
+    }
+
+    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+    private void Rpc_UpdatePlayerSprite(bool isAlone)
+    {
+        _player.sprite = isAlone ? _sprites[0] : _sprites[1];
+    }
+
+
+    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+    public void RpcMergeChannels(string channel1, string channel2)
+    {
+        Debug.LogError("Merging channels: " + channel1 + " and " + channel2);
+        Dictionary<string, List<PlayerRef>> networkTable = networkTableManager.GetNetworkTableAsDictionary();
+
+        LogNetworkTable();
+
+        if (!networkTable.ContainsKey(channel1) || !networkTable.ContainsKey(channel2)) return;
+
+        List<PlayerRef> channel1Players = networkTable[channel1];
+        List<PlayerRef> channel2Players = networkTable[channel2];
+        string targetChannel = channel1Players.Count >= channel2Players.Count ? channel1 : channel2;
+        string sourceChannel = channel1Players.Count >= channel2Players.Count ? channel2 : channel1;
+
+        Debug.LogError($"Target channel: {targetChannel}, Source channel: {sourceChannel}");
+
+        List<PlayerRef> playersToMove = networkTable[sourceChannel];
+
+        foreach (var playerRef in playersToMove)
+        {
+            networkTableManager.Rpc_UpdateNetworkTable("remove", sourceChannel, playerRef);
+            PlayerController player = Runner.GetPlayerObject(playerRef).GetComponent<PlayerController>();
+            player.Rpc_LeaveChannel(playerRef, sourceChannel);
+            player.Rpc_SetIsInChannel(false);
+            player.Rpc_SetChannelName(targetChannel);
+        }
+
+    }
+
+    public void LogNetworkTable()
+    {
+        Dictionary<string, List<PlayerRef>> networkTable = networkTableManager.GetNetworkTableAsDictionary();
+        Debug.Log("Network Table:"+ networkTable.Count);
+        foreach (var kvp in networkTable)
+        {
+            Debug.LogError($"Channel: {kvp.Key}");
+            for (int i = 0; i < kvp.Value.Count; i++)
+            {
+                PlayerController player = Runner.GetPlayerObject(kvp.Value[i]).GetComponent<PlayerController>();
+                Debug.LogError($"  Player {i + 1}: {player._playerID}");
+            }
+        }
+    }
     public string GetChannelName() { return _channelName.Value; }
 
     [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
@@ -529,4 +445,10 @@ public class PlayerController : NetworkBehaviour
     {
         _playerID = nick;
     }
+    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+    public void Rpc_SetIsInChannel(bool value)
+    {
+        isInChannel = value;
+    }
+
 }

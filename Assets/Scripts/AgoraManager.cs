@@ -7,6 +7,7 @@ using System.Collections;
 using Agora_RTC_Plugin.API_Example;
 using UnityEngine.UI;
 using WebSocketSharp;
+using static Unity.Collections.Unicode;
 
 public class AgoraManager : MonoBehaviour
 {
@@ -22,11 +23,10 @@ public class AgoraManager : MonoBehaviour
     public string _channelName = "";
 
     private PlayerController mainPlayerInfo;
+    private Dictionary<string, HashSet<uint>> channelUsers = new Dictionary<string, HashSet<uint>>();
+
 
     public CONNECTION_STATE_TYPE connectionState = CONNECTION_STATE_TYPE.CONNECTION_STATE_DISCONNECTED;
-    [Networked]
-    public Dictionary<string, List<PlayerController>> networkTable { get; set; }
-    //[Networked] private NetworkDictionary<NetworkString<_128>, int> _bridges { get; set; }
     [Networked] public Dictionary<string, int> Bridges { get; set; }
     [Networked]
     public int channelCount { get; set; }
@@ -47,7 +47,7 @@ public class AgoraManager : MonoBehaviour
 
     private void Start()
     {
-        networkTable = new Dictionary<string, List<PlayerController>>();
+        
         Bridges = new Dictionary<string, int>();
         InitRtcEngine();
         SetBasicConfiguration();
@@ -91,7 +91,12 @@ public class AgoraManager : MonoBehaviour
 
     public void AddPlayerToChannel(string channelName, PlayerController player)
     {
-        Rpc_UpdateNetworkTable("add", channelName, player);
+        if(player.networkTableManager == null)
+        {
+            Debug.LogError("It is nulll");
+        }
+       
+        player.LogNetworkTable();
         Debug.LogError("Adding " + player._playerID + " " + channelName);
         string tempToken = GetTokenForChannel(channelName, player);
         player.isInChannel = true;
@@ -105,22 +110,14 @@ public class AgoraManager : MonoBehaviour
         {
             StartCoroutine(FetchAndJoinChannel(channelName, player));
         }
-    }
-    public void LogNetworkTable()
-    {
-        foreach (var kvp in networkTable)
+
+        if (!channelUsers.ContainsKey(channelName))
         {
-            string key = kvp.Key;
-            List<PlayerController> value = kvp.Value;
-
-            Debug.Log("Key: " + key);
-
-            foreach (var player in value)
-            {
-                Debug.Log("  Player: " + player._playerID);
-            }
+            channelUsers[channelName] = new HashSet<uint>();
         }
+        channelUsers[channelName].Add((uint)player._playerID);
     }
+
     private IEnumerator FetchAndJoinChannel(string channelName, PlayerController player)
     {
         bool isTokenFetched = false;
@@ -161,78 +158,25 @@ public class AgoraManager : MonoBehaviour
     {
         channelCount = num;
     }
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RpcMergeChannels(string channel1, string channel2)
+
+    public void LeaveChannel(PlayerController player, string channel)
     {
-        Debug.LogError("Merging channels: " + channel1 + " and " + channel2);
-        LogNetworkTable();
-
-        if (!networkTable.ContainsKey(channel1) || !networkTable.ContainsKey(channel2)) return;
-
-        List<PlayerController> channel1Players = new List<PlayerController>(networkTable[channel1]);
-        List<PlayerController> channel2Players = new List<PlayerController>(networkTable[channel2]);
-        string targetChannel = channel1Players.Count >= channel2Players.Count ? channel1 : channel2;
-        string sourceChannel = channel1Players.Count >= channel2Players.Count ? channel2 : channel1;
-
-        List<PlayerController> playersToMove = new List<PlayerController>(networkTable[sourceChannel]);
-
-        foreach (var player in playersToMove)
-        {
-            Rpc_UpdateNetworkTable("remove", sourceChannel, player);
-            Rpc_UpdateNetworkTable("add", targetChannel, player);
-            player.Rpc_SetChannelName(targetChannel);
-        }
-
-        // Remove the source channel if it's now empty
-        if (networkTable.ContainsKey(sourceChannel) && networkTable[sourceChannel].Count == 0)
-        {
-            networkTable.Remove(sourceChannel);
-        }
-
-        Debug.LogError("Merge complete. Updated network table:");
-        LogNetworkTable();
-    }
-
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void Rpc_UpdateNetworkTable(string action, string channelName, PlayerController player = null)
-    {
-        if (!player.Object.HasStateAuthority) return;
-
-        if (action == "add")
-        {
-            if (!networkTable.ContainsKey(channelName))
-            {
-                networkTable[channelName] = new List<PlayerController>();
-            }
-            if (player != null && !networkTable[channelName].Contains(player))
-            {
-                networkTable[channelName].Add(player);
-            }
-        }
-        else if (action == "remove")
-        {
-            if (networkTable.ContainsKey(channelName) && player != null)
-            {
-                networkTable[channelName].Remove(player);
-                if (networkTable[channelName].Count == 0)
-                {
-                    networkTable.Remove(channelName);
-                    UpdateChannelCount(channelCount - 1);
-                }
-            }
-        }
-
-        // Log the update for debugging
-        Debug.LogError($"Network table updated: {action} {channelName} {(player != null ? player._playerID.ToString() : "null")}");
-        LogNetworkTable();
-    }
-
-    public void LeaveChannel(PlayerController player)
-    {
-        Debug.LogError(player._channelName + " ye channel se alvida");
-        string channel = player._agoraManager._channelName;
         player.tokens.Remove(channel);
-        RtcEngine.LeaveChannel();
+
+        if (channelUsers.ContainsKey(channel))
+        {
+            channelUsers[channel].Remove((uint)player._playerID);
+            if (channelUsers[channel].Count == 0)
+            {
+                channelUsers.Remove(channel);
+            }
+        }
+
+        if (!IsUserInAnyChannel((uint)player._playerID))
+        {
+            RtcEngine.LeaveChannel();
+        }
+
         player.Rpc_SetChannelName(string.Empty);
         player.RpcSetToken(string.Empty);
         player.isInChannel = false;
@@ -246,7 +190,6 @@ public class AgoraManager : MonoBehaviour
     private void DestroyVideoView(uint uid)
     {
         GameObject videoView = GameObject.Find(uid.ToString());
-        Debug.Log(videoView + " = " + uid);
         if (videoView != null)
         {
             Destroy(videoView);
@@ -267,36 +210,16 @@ public class AgoraManager : MonoBehaviour
         return "";
     }
 
-    private void MakeVideoView(uint uid, string channelId = "")
+    public bool IsUserInAnyChannel(uint uid)
     {
-        GameObject videoView = GameObject.Find(uid.ToString());
-        if (videoView != null)
+        foreach (var channelUsers in channelUsers.Values)
         {
-            return;
+            if (channelUsers.Contains(uid))
+            {
+                return true;
+            }
         }
-
-        VideoSurface videoSurface = MakeImageSurface(uid.ToString());
-        if (videoSurface == null) return;
-
-        videoSurface.SetForUser(uid, channelId, uid == 0 ? VIDEO_SOURCE_TYPE.VIDEO_SOURCE_LOCAL : VIDEO_SOURCE_TYPE.VIDEO_SOURCE_REMOTE);
-
-        videoSurface.OnTextureSizeModify += (int width, int height) =>
-        {
-            RectTransform transform = videoSurface.GetComponent<RectTransform>();
-            if (transform)
-            {
-                transform.sizeDelta = new Vector2(width / 2, height / 2);
-                transform.localScale = Vector3.one;
-            }
-            else
-            {
-                float scale = (float)height / (float)width;
-                videoSurface.transform.localScale = new Vector3(-1, 1, scale);
-            }
-
-        };
-
-        videoSurface.SetEnable(true);
+        return false;
     }
 
     private VideoSurface MakeImageSurface(string goName)
@@ -344,9 +267,9 @@ public class AgoraManager : MonoBehaviour
 
         public override void OnLeaveChannel(RtcConnection connection, RtcStats stats)
         {
-            // Remove the user from the joined users list
+            
             joinedUsers.Clear();
-
+            Debug.LogError("Player Left calleddddddd "+ connection.localUid);
             GameObject[] videoViews = GameObject.FindGameObjectsWithTag("VideoSurface");
             foreach (GameObject videoView in videoViews)
             {
@@ -354,12 +277,12 @@ public class AgoraManager : MonoBehaviour
             }
         }
 
-       
+
         public override void OnUserJoined(RtcConnection connection, uint uid, int elapsed)
         {
+            Debug.LogError("on user joined callleedddd");
             if (!joinedUsers.Contains(uid))
             {
-                joinedUsers.Add(uid);
                 VideoSurface videoSurface = agoraManager.MakeImageSurface(uid.ToString());
                 if (videoSurface != null)
                 {
@@ -371,12 +294,20 @@ public class AgoraManager : MonoBehaviour
 
         public override void OnUserOffline(RtcConnection connection, uint uid, USER_OFFLINE_REASON_TYPE reason)
         {
-            // Remove the user from the joined users list
+            Debug.LogError("User offline: " + uid);
+
+            if (!agoraManager.IsUserInAnyChannel(uid))
+            {
+                Debug.LogError("Destroying video view for user: " + uid);
+                agoraManager.DestroyVideoView(uid);
+            }
+            else
+            {
+                Debug.LogError("User " + uid + " is still in a channel, not destroying video view");
+            }
+
             joinedUsers.Remove(uid);
-
-            agoraManager.DestroyVideoView(uid);
         }
-
         public override void OnConnectionStateChanged(RtcConnection connection, CONNECTION_STATE_TYPE state, CONNECTION_CHANGED_REASON_TYPE reason)
         {
             agoraManager.connectionState = state;
