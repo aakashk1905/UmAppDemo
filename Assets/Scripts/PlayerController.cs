@@ -33,15 +33,17 @@ public class PlayerController : NetworkBehaviour
     public string _token = "";
     public bool isInChannel = false;
     public SpriteRenderer _player;
-    public List<PlayerController> neighbours = new List<PlayerController>();
+    public List<PlayerRef> neighbours = new List<PlayerRef>();
     private AgoraManager _agoraManager;
     private Vector2 _direction;
     public Dictionary<string, string> tokens = new Dictionary<string, string>();
     private float lastClickTime;
     private float doubleClickTime = 0.3f;
     private bool isTeleporting = false;
-    private Vector2 _direction;
     private Vector3 _updatedPosition = Vector3.zero;
+    public float _speed = 5f;
+
+
     public override void Spawned()
     {
         _player = GetComponent<SpriteRenderer>();
@@ -79,14 +81,14 @@ public class PlayerController : NetworkBehaviour
 
     }
 
-public override void FixedUpdateNetwork()
-{   
-    if (Object.HasInputAuthority)
+    public override void FixedUpdateNetwork()
     {
+
+
 
         if (GetInput(out NetworkInputData input))
         {
-            if (_updatedPosition != Vector3.zero)
+            /*if (_updatedPosition != Vector3.zero)
             {
                 if (isTeleporting)
                 {
@@ -96,36 +98,28 @@ public override void FixedUpdateNetwork()
                 Debug.Log($"Teleporting to position: {_updatedPosition}");
                 _rb.Rigidbody.position = _updatedPosition;
 
-            
+
                 UpdateNetworkPosition(_updatedPosition);
                 _updatedPosition = Vector3.zero; // Reset 
             }
             else
             {
                 _rb.Rigidbody.velocity = input.directions * moveSpeed;
-            }
+            }*/
+            _rb.Rigidbody.velocity = input.directions * moveSpeed;
         }
-    }
 
-    if (_playerID != 0)
-    {
-        transform.name = "Player" + _playerID;
-        GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
-    }
-}
-private void Update()
-{
-    if (isTeleporting) return;
-    if (Input.GetMouseButtonDown(0))
-    {
-        if (Time.time - lastClickTime < doubleClickTime)
+        if (Input.GetMouseButtonDown(0))
         {
-            Debug.Log("Double click detected. Teleporting player.");
-            TeleportPlayerToMousePosition();
+            if (Time.time - lastClickTime < doubleClickTime)
+            {
+                Debug.Log("Double click detected. Teleporting player.");
+                TeleportPlayerToMousePosition();
+            }
+            lastClickTime = Time.time;
         }
-        lastClickTime = Time.time;
+
     }
-}
 
 private void TeleportPlayerToMousePosition()
 {
@@ -138,7 +132,9 @@ private void TeleportPlayerToMousePosition()
         Debug.Log($"Hit detected on Plane. Target Position: {targetPosition}");
         _updatedPosition = targetPosition;
 
-        StartCoroutine(SmoothTeleport(targetPosition));
+            //StartCoroutine(SmoothTeleport(targetPosition));
+            Vector3 movement = targetPosition * _speed * Runner.DeltaTime;
+            transform.Translate(movement);
     }
     else
     {
@@ -551,3 +547,4 @@ private IEnumerator SmoothTeleport(Vector3 targetPosition)
     }
 
 }
+#endregion
