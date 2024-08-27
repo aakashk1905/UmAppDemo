@@ -14,7 +14,7 @@ public class PlayerController : NetworkBehaviour
 {
     [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private NetworkRigidbody2D _rb;
-    private CircleCollider2D trigger;
+    public CircleCollider2D trigger;
     private CircleCollider2D Rangetrigger;
     private CircleCollider2D Roomtrigger;
 
@@ -124,10 +124,10 @@ public class PlayerController : NetworkBehaviour
             _rb.Rigidbody.velocity = input.directions * moveSpeed;
         }
 
-        if (Object.HasInputAuthority)
-        {
-            CheckForDoubleClick();
-        }
+        // if (Object.HasInputAuthority)
+        // {
+        //     CheckForDoubleClick();
+        // }
         if (movementJoystick.Direction.y != 0 || movementJoystick.Direction.x != 0)
         {
             _rb.Rigidbody.velocity = new Vector2(movementJoystick.Direction.x * moveSpeed, movementJoystick.Direction.y * moveSpeed);
@@ -191,7 +191,14 @@ public class PlayerController : NetworkBehaviour
     }
 
 
-
+    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
+    public void Rpc_UpdateCharacterinRoom(bool Value){
+        if (Object.HasInputAuthority){
+            GameObject range = GameObject.Find("Range");
+            range.GetComponent<SpriteRenderer>().enabled = Value;
+            trigger.enabled = Value;
+        }
+    }
 
     #region Collison Management
 
@@ -484,7 +491,7 @@ public class PlayerController : NetworkBehaviour
 
     
     [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-    private void Rpc_LeaveChannel(PlayerRef playerRef, string channel)
+    public void Rpc_LeaveChannel(PlayerRef playerRef, string channel)
     {
         if (Object.HasInputAuthority)
         {
@@ -555,6 +562,7 @@ public class PlayerController : NetworkBehaviour
     public void Rpc_SetChannelName(string name)
     {
         _channelName = name;
+        Debug.Log("Channel name set to: " + name);
     }
 
     public string GetToken() { return _token; }

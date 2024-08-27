@@ -33,6 +33,11 @@ public class AgoraManager : MonoBehaviour
     [Networked]
     public int channelCount { get; set; }
 
+    //Ui Buttons
+    [SerializeField] private Sprite micOnSprite;
+    [SerializeField] private Sprite micOffSprite;
+    [SerializeField] private Button muteButton;
+
     private void Awake()
     {
         if (Instance == null)
@@ -75,6 +80,26 @@ public class AgoraManager : MonoBehaviour
         Debug.LogError("Mute button Cicked" + isMuted);
         isMuted = !isMuted;
         RtcEngine.MuteLocalAudioStream(isMuted);
+
+        // Update the button sprite based on the mute state
+        if (muteButton != null)
+        {
+            Image buttonImage = muteButton.GetComponent<Image>();
+            if (isMuted)
+            {
+                buttonImage.sprite = micOnSprite; // Switch to Mic On sprite when muted
+                Log.Info("Mic is on");
+            }
+            else
+            {
+                buttonImage.sprite = micOffSprite; // Switch to Mic Off sprite when unmuted
+                Log.Info("Mic is off");
+            }
+        }
+        else
+        {
+            Debug.LogError("Mute button reference not set!");
+        }
         //UpdateButtonTexts();
     }
 
