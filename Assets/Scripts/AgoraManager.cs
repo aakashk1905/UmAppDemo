@@ -16,8 +16,10 @@ public class AgoraManager : MonoBehaviour
     [SerializeField] private string appID;
     [SerializeField] private GameObject canvas;
     [SerializeField] private string tokenBase = "https://agoraapi.vercel.app/token";
+    private bool isMuted = false;
+    private bool isVideoEnabled = true;
 
-    private IRtcEngine RtcEngine;
+    public IRtcEngine RtcEngine;
 
     private string _token = "";
     public string _channelName = "";
@@ -68,7 +70,20 @@ public class AgoraManager : MonoBehaviour
         RtcEngine.Initialize(context);
         RtcEngine.InitEventHandler(handler);
     }
+    public void ToggleMute()
+    {
+        Debug.LogError("Mute button Cicked" + isMuted);
+        isMuted = !isMuted;
+        RtcEngine.MuteLocalAudioStream(isMuted);
+        //UpdateButtonTexts();
+    }
 
+    public void ToggleVideo()
+    {
+        isVideoEnabled = !isVideoEnabled;
+        RtcEngine.EnableLocalVideo(isVideoEnabled);
+        //UpdateButtonTexts();
+    }
     private void SetBasicConfiguration()
     {
         RtcEngine.EnableAudio();
@@ -200,7 +215,7 @@ public class AgoraManager : MonoBehaviour
 
     public string GenerateChannelName(String name)
     { 
-        string newChannelName = "user_channel_" + name;
+        string newChannelName = "user_" + name;
         return newChannelName;
     }
 

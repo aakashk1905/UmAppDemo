@@ -12,6 +12,7 @@
 #define GPM_WEBVIEW_API_SHOW_HTML_FILE @"gpmwebview://showHtmlFile"
 #define GPM_WEBVIEW_API_SHOW_HTML_STRING @"gpmwebview://showHtmlString"
 #define GPM_WEBVIEW_API_SHOW_SAFE_BROWSING @"gpmwebview://showSafeBrowsing"
+#define GPM_WEBVIEW_API_CLOSE_SAFE_BROWSING @"gpmwebview://closeSafeBrowsing"
 #define GPM_WEBVIEW_API_CLOSE @"gpmwebview://close"
 #define GPM_WEBVIEW_API_IS_ACTIVE @"gpmwebview://isActive"
 #define GPM_WEBVIEW_API_EXECUTE_JAVASCRIPT @"gpmwebview://executeJavaScript"
@@ -86,6 +87,8 @@
         [self showHtmlString:webviewMessage];
     } else if([webviewMessage.scheme isEqualToString:GPM_WEBVIEW_API_SHOW_SAFE_BROWSING]) {
         [self showSafeBrowsing:webviewMessage];
+    } else if([webviewMessage.scheme isEqualToString:GPM_WEBVIEW_API_CLOSE_SAFE_BROWSING]) {
+        [self closeSafeBrowsing];
     } else if([webviewMessage.scheme isEqualToString:GPM_WEBVIEW_API_CLOSE]) {
         [self close];
     } else if([webviewMessage.scheme isEqualToString:GPM_WEBVIEW_API_EXECUTE_JAVASCRIPT]) {
@@ -156,6 +159,11 @@
     [GPMWebView showSafeBrowsing:url viewController:UnityGetGLViewController() configuration:configuration callbackCompletion:^(NSInteger callbackType, NSString *data, GPMWebViewError *error) {
         [self sendWebViewMessage:webViewMessage.callback callbackType:callbackType data:data error:error];
     }];
+}
+
+- (void) closeSafeBrowsing
+{
+    [GPMWebView closeSafeBrowsing];
 }
 
 - (void) executeJavaScript: (GPMWebViewMessage*)webViewMessage {

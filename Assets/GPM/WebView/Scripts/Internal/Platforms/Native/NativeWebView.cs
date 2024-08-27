@@ -15,6 +15,7 @@
             public const string SHOW_HTML_FILE = "gpmwebview://showHtmlFile";
             public const string SHOW_HTML_STRING = "gpmwebview://showHtmlString";
             public const string SHOW_SAFE_BROWSING = "gpmwebview://showSafeBrowsing";
+            public const string CLOSE_SAFE_BROWSING = "gpmwebview://closeSafeBrowsing";
             public const string CLOSE = "gpmwebview://close";
             public const string IS_ACTIVE = "gpmwebview://isActive";
             public const string EXECUTE_JAVASCRIPT = "gpmwebview://executeJavaScript";
@@ -91,7 +92,7 @@
             Initialize();
         }
 
-        virtual protected void Initialize()
+        protected virtual void Initialize()
         {
             GpmCommunicatorVO.Configuration configuration = new GpmCommunicatorVO.Configuration()
             {
@@ -182,6 +183,18 @@
             nativeMessage.data = JsonMapper.ToJson(showSafeBrowsing);
 
             CallAsync(JsonMapper.ToJson(nativeMessage), null);
+        }
+
+        public virtual void CloseSafeBrowsing()
+        {
+            NativeMessage nativeMessage = new NativeMessage
+            {
+                scheme = ApiScheme.CLOSE_SAFE_BROWSING
+            };
+
+            string jsonData = JsonMapper.ToJson(nativeMessage);
+
+            CallAsync(jsonData, null);
         }
 
         public void Close()

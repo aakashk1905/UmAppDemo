@@ -1,6 +1,5 @@
 ﻿namespace Gpm.WebView
 {
-    using System.Collections.Generic;
     using Gpm.WebView.Internal;
 
     public static class GpmWebViewSafeBrowsing
@@ -17,6 +16,14 @@
             GpmWebViewCallback.GpmWebViewDelegate callback = null)
         {
             WebViewImplementation.Instance.ShowSafeBrowsing(url, configuration, callback);
+        }
+
+        /// <summary>
+        /// Close SafeBrowsing.(iOS Only)
+        /// </summary>
+        public static void CloseSafeBrowsing()
+        {
+            WebViewImplementation.Instance.CloseSafeBrowsing();
         }
     }
 }

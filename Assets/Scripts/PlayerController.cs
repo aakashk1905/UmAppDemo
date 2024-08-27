@@ -4,27 +4,32 @@ using UnityEngine;
 using Fusion;
 using Fusion.Addons.Physics;
 using TMPro;
-
 using WebSocketSharp;
 using System;
-
 using System.Linq;
-using System.Collections;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : NetworkBehaviour
 {
     [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private NetworkRigidbody2D _rb;
+    private CircleCollider2D trigger;
+    private CircleCollider2D Rangetrigger;
+    private CircleCollider2D Roomtrigger;
+
     [SerializeField] public Sprite[] _sprites;
 
     public NetworkTableManager networkTableManager;
     public NetworkedDSU _networkedDSU;
+    public Joystick movementJoystick;
 
 
     public bool IamBridge = false;
     private ChangeDetector _changeDetector;
-    public string PlayerName;
-    [Networked, OnChangedRender(nameof(OnPlayerIdChanged))]
+    [Networked, OnChangedRender(nameof(OnNameChanged))]
+    public NetworkString<_128> PlayerName { get; set; } = "";
+    [Networked, OnChangedRender(nameof(OnIDChanged))]
     public int _playerID { get; set; }
     [Networked, OnChangedRender(nameof(OnChannelChanged))]
     public NetworkString<_128> _channelName { get; set; } = "";
@@ -37,32 +42,39 @@ public class PlayerController : NetworkBehaviour
     private AgoraManager _agoraManager;
     private Vector2 _direction;
     public Dictionary<string, string> tokens = new Dictionary<string, string>();
-    private float lastClickTime;
-    private float doubleClickTime = 0.3f;
+    private float lastClickTime = 0f;
+    private float DOUBLE_CLICK_TIME = 0.3f;
     private bool isTeleporting = false;
     private Vector3 _updatedPosition = Vector3.zero;
     public float _speed = 5f;
+    private int clickCount = 0;
+
+    [Networked] private Vector3 _targetPosition { get; set; }
+    [Networked] private NetworkBool _isTeleporting { get; set; }
+
+
 
 
     public override void Spawned()
     {
-        _player = GetComponent<SpriteRenderer>();
-        if (Object.HasStateAuthority)
+        if (Object.HasInputAuthority)
         {
-            if (_playerID == 0)
-            {
-                int id = UnityEngine.Random.Range(0, 1000);
-                RPC_SetNickname(id);
-            }
-           
+            LoadPlayerData();
         }
-
-        transform.name = "Player" + _playerID;
-        GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
-
-        _agoraManager = AgoraManager.Instance;
+        _player = GetComponent<SpriteRenderer>();
+        _speed = 5f;
+        transform.name = PlayerName.Value;
+        GetComponentInChildren<TMP_Text>().text = PlayerName.Value;
+        Transform rangeTransform = transform.Find("Range");
+        Transform roomTransform = transform.Find("RoomTrigger");
+        Roomtrigger = roomTransform.GetComponent<CircleCollider2D>();
+        if (rangeTransform != null)
+        {
+            Rangetrigger = rangeTransform.GetComponent<CircleCollider2D>();   
+        }
         _agoraManager = AgoraManager.Instance;
         _rb = GetComponent<NetworkRigidbody2D>();
+        trigger = GetComponent<CircleCollider2D>();
         _changeDetector = new ChangeDetector();
         _channelName = "";
         networkTableManager = NetworkTableManager.Instance;
@@ -81,110 +93,130 @@ public class PlayerController : NetworkBehaviour
 
     }
 
+    void LoadPlayerData()
+    {
+        if (UserDataManager.Instance != null && UserDataManager.Instance.CurrentUser != null)
+        {
+            // Access user data
+            string name = UserDataManager.Instance.GetUserName();
+            string userEmail = UserDataManager.Instance.GetUserEmail();
+            string userMobile = UserDataManager.Instance.GetUserMobile();
+            string userRole = UserDataManager.Instance.GetUserRole();
+
+                RPC_RequestSetPlayerInfo(Object.InputAuthority.PlayerId, name);
+  
+        }
+    }
+
+    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
+    private void RPC_RequestSetPlayerInfo(int id, string nickname)
+    {
+        Debug.Log($"{id} nicceeeeeeeeeeeeeeee {nickname}");
+        RPC_SetPlayerInfo(Object.InputAuthority, id, nickname);
+    }
+
+
+    
     public override void FixedUpdateNetwork()
     {
-
-
-
         if (GetInput(out NetworkInputData input))
         {
-            /*if (_updatedPosition != Vector3.zero)
-            {
-                if (isTeleporting)
-                {
-                    _rb.Rigidbody.velocity = Vector2.zero;
-                    return;
-                }
-                Debug.Log($"Teleporting to position: {_updatedPosition}");
-                _rb.Rigidbody.position = _updatedPosition;
-
-
-                UpdateNetworkPosition(_updatedPosition);
-                _updatedPosition = Vector3.zero; // Reset 
-            }
-            else
-            {
-                _rb.Rigidbody.velocity = input.directions * moveSpeed;
-            }*/
             _rb.Rigidbody.velocity = input.directions * moveSpeed;
         }
 
+        if (Object.HasInputAuthority)
+        {
+            CheckForDoubleClick();
+        }
+        if (movementJoystick.Direction.y != 0 || movementJoystick.Direction.x != 0)
+        {
+            _rb.Rigidbody.velocity = new Vector2(movementJoystick.Direction.x * moveSpeed, movementJoystick.Direction.y * moveSpeed);
+        }
+        if (_isTeleporting)
+        {
+            trigger.enabled = false;
+            Rangetrigger.enabled = false;
+            Roomtrigger.enabled = false;
+            transform.position = Vector3.MoveTowards(transform.position, _targetPosition, _speed * Runner.DeltaTime);
+            if (Vector3.Distance(transform.position, _targetPosition) < 0.01f)
+            {
+                _isTeleporting = false;
+                trigger.enabled = true;
+                Rangetrigger.enabled = true;
+                Roomtrigger.enabled = true;
+            }
+        }
+    }
+
+    private void CheckForDoubleClick()
+    {
         if (Input.GetMouseButtonDown(0))
         {
-            if (Time.time - lastClickTime < doubleClickTime)
+            clickCount++;
+            float timeSinceLastClick = Time.time - lastClickTime;
+            if (timeSinceLastClick < DOUBLE_CLICK_TIME && clickCount ==2)
             {
-                Debug.Log("Double click detected. Teleporting player.");
                 TeleportPlayerToMousePosition();
+            }
+            if(clickCount >= 2)
+            {
+                clickCount = 0;
             }
             lastClickTime = Time.time;
         }
-
     }
 
-private void TeleportPlayerToMousePosition()
-{
-    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-    RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction);
 
-    if (hit.collider != null && hit.collider.CompareTag("Plane"))
+    private void TeleportPlayerToMousePosition()
     {
-        Vector3 targetPosition = hit.point;
-        Debug.Log($"Hit detected on Plane. Target Position: {targetPosition}");
-        _updatedPosition = targetPosition;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-            //StartCoroutine(SmoothTeleport(targetPosition));
-            Vector3 movement = targetPosition * _speed * Runner.DeltaTime;
-            transform.Translate(movement);
-    }
-    else
-    {
-        Debug.Log("No hit detected or hit object is not Plane.");
-    }
-}
+        int planeMask = LayerMask.GetMask("Ground");
 
-private IEnumerator SmoothTeleport(Vector3 targetPosition)
-    {
-        isTeleporting = true;
-        Debug.Log($"Smooth teleport started to {targetPosition}.");
+        RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction, Mathf.Infinity, planeMask);
 
-        float duration = 1.0f;
-        float elapsed = 0f;
-        Vector3 startPosition = transform.position;
-
-        while (elapsed < duration)
+        if (hit.collider != null)
         {
-            transform.position = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
-            
-            elapsed += Time.deltaTime;
-            yield return null;
+            Vector3 targetPosition = hit.point;
+            RPC_RequestTeleport(targetPosition);
         }
-
-        transform.position = targetPosition;
-        UpdateNetworkPosition(targetPosition);
-
-        isTeleporting = false;
+       
     }
-    
-    private void UpdateNetworkPosition(Vector3 newPosition)
+
+    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
+    private void RPC_RequestTeleport(Vector3 targetPosition)
     {
-        if (Object.HasStateAuthority)
-        {
-            transform.position = newPosition;
-            Debug.Log($"Position synchronized across the network: {newPosition}");
-        }
+        _targetPosition = targetPosition;
+        _isTeleporting = true;
     }
+
+
 
 
     #region Collison Management
 
-    public void OnPlayerIdChanged()
+    public void OnNameChanged()
     {
-        if (_playerID != 0)
+        Debug.LogError("name changed"+ PlayerName);
+        if (!string.IsNullOrEmpty(PlayerName.Value))
         {
-            transform.name = "Player" + _playerID;
-            GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
+            transform.name = PlayerName.Value;
+            TMP_Text nameText = GetComponentInChildren<TMP_Text>();
+            if (nameText != null)
+            {
+                nameText.text = PlayerName.Value;
+            }
+            else
+            {
+                Debug.LogError("TMP_Text component not found on player object.");
+            }
         }
     }
+    public void OnIDChanged()
+    {
+        Debug.LogError("name" + _playerID);
+    }
+
 
     public void OnChannelChanged()
     {
@@ -192,7 +224,7 @@ private IEnumerator SmoothTeleport(Vector3 targetPosition)
         {
             prevChannel = myChannel;
             myChannel = _channelName.Value;
-            Debug.LogError(_channelName.Value + " =====" + _playerID + " ==========" + isInChannel);
+            
             if (!_channelName.Value.IsNullOrEmpty() && _channelName.Value != "dummy" && !isInChannel)
             {
                 _agoraManager.AddPlayerToChannel(_channelName.Value, this);
@@ -224,7 +256,7 @@ private IEnumerator SmoothTeleport(Vector3 targetPosition)
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.tag == "Player")
+        if (collision.gameObject.tag == "Player" )
         {
             PlayerController otherPlayer = collision.gameObject.GetComponent<PlayerController>();
             if (otherPlayer != null)
@@ -535,11 +567,18 @@ private IEnumerator SmoothTeleport(Vector3 targetPosition)
 
     public int GetPlayerId() { return _playerID; }
 
-    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-    public void RPC_SetNickname(int nick)
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_SetPlayerInfo(PlayerRef playerRef, int id, string nickname)
     {
-        _playerID = nick;
+        if (Object.InputAuthority == playerRef)
+        {
+            _playerID = id;
+            PlayerName = nickname;
+            Debug.Log($"Setting player info for {playerRef}: ID = {id}, Name = {nickname}");
+
+        }
     }
+
     [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
     public void Rpc_SetIsInChannel(bool value)
     {

@@ -4,9 +4,26 @@ namespace Gpm.Common.Indicator.Internal
 {
     public class LaunchingRequest
     {
-        public UnityWebRequest Request(string appKey = Launching.APP_KEY, string subKey = null)
+        public UnityWebRequest RequestConfig()
         {
-            string url = string.Format("{0}/{1}/appkeys/{2}/configurations", Launching.URI, Launching.VERSION, Decode(appKey));
+            string url = string.Format("{0}/main/release/{1}", Launching.URI, Launching.FILE_NAME);
+            var request = UnityWebRequest.Get(url);
+            request.method = UnityWebRequest.kHttpVerbGET;
+
+            return request;
+        }
+
+        public UnityWebRequest RequestLaunchingInfo(Config config)
+        {
+            string appKey = config.launching.appKey;
+            if (config.launching.isEncoding == true)
+            {
+                appKey = Decode(appKey);
+            }
+
+            string subKey = config.launching.subKey;
+
+            string url = string.Format("{0}/{1}/appkeys/{2}/configurations", config.launching.url, config.launching.version, appKey);
             if (string.IsNullOrEmpty(subKey) == false)
             {
                 url += "?subKey=launching." + subKey;

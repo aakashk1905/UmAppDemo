@@ -2,6 +2,6 @@
 {
     public static class GpmManagerVersion
     {
-        public const string VERSION = "2.2.5";
+        public const string VERSION = "2.2.6";
     }
 }

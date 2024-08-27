@@ -12,11 +12,64 @@ namespace Gpm.Common.Indicator.Internal
     {
         protected ICoroutineObject coroutineObject;
 
-        protected virtual void GetLaunchingInfo(Action<LaunchingInfo> callback)
+        protected virtual void SetLaunchingZone()
+        {
+            GetConfig((config) =>
+            {
+                if (config == null)
+                {
+                    return;
+                }
+
+                SetLaunchingInfo(config);
+            });
+        }
+
+        private void SetLaunchingInfo(Config config)
+        {
+            GetLaunchingInfo(config , (launchingInfo) =>
+            {
+                if (launchingInfo == null)
+                {
+                    return;
+                }
+
+                if (launchingInfo.header.isSuccessful == true)
+                {
+                    indicatorInfo = launchingInfo.launching.indicator.real;
+                    SetDevelopmentZone(launchingInfo);
+
+                    ExecuteQueueDelegate();
+                }
+            });
+        }
+
+        protected virtual void GetConfig(Action<Config> callback)
         {
             var launchingRequest = new LaunchingRequest();
 
-            UnityWebRequest request = launchingRequest.Request();
+            UnityWebRequest request = launchingRequest.RequestConfig();
+            var helper = new UnityWebRequestHelper(request);
+
+            coroutineObject.StartCoroutine(helper.SendWebRequestAndDispose(result =>
+            {
+                if (CheckInvalidResult(result) == true)
+                {
+                    callback(null);
+                }
+                else
+                {
+                    var config = GpmJsonMapper.ToObject<Config>(result.downloadHandler.text);
+                    callback(config);
+                }
+            }));
+        }
+
+        protected virtual void GetLaunchingInfo(Config config, Action<LaunchingInfo> callback)
+        {
+            var launchingRequest = new LaunchingRequest();
+
+            UnityWebRequest request = launchingRequest.RequestLaunchingInfo(config);
             var helper = new UnityWebRequestHelper(request);
 
             coroutineObject.StartCoroutine(helper.SendWebRequestAndDispose(result =>
@@ -56,21 +109,7 @@ namespace Gpm.Common.Indicator.Internal
 
         protected void Initialize()
         {
-            GetLaunchingInfo((launchingInfo) =>
-            {
-                if (launchingInfo == null)
-                {
-                    return;
-                }
-
-                if (launchingInfo.header.isSuccessful == true)
-                {
-                    indicatorInfo = launchingInfo.launching.indicator.real;
-                    SetDevelopmentZone(launchingInfo);
-
-                    ExecuteQueueDelegate();
-                }
-            });
+            SetLaunchingZone();
         }
 
         [Conditional("GPM_INDICATOR_DEVELOPMENT")]

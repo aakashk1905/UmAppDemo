@@ -4,7 +4,7 @@
     {
         private const string IOS_CLASS_NAME = "GPMWebViewPlugin";
 
-        override protected void Initialize()
+        protected override void Initialize()
         {
             CLASS_NAME = IOS_CLASS_NAME;
             base.Initialize();

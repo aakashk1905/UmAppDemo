@@ -11,6 +11,13 @@ using static Unity.Collections.Unicode;
 
 public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
+    public Canvas loader;
+    private void Start()
+    {
+        loader.enabled = true;
+        Host();
+
+    }
     private NetworkRunner networkRunner;
     public void Host()
     {
@@ -21,9 +28,6 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
         networkRunner = gameObject.AddComponent<NetworkRunner>();
         networkRunner.ProvideInput = true;
-
-       
-
         //Scene info
         var scene = SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex);
         var sceneInfo = new NetworkSceneInfo();
@@ -44,6 +48,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
         if (result.Ok)
         {
             Debug.Log("Game started successfully.");
+            loader.enabled = false;
         }
         else
         {
@@ -55,6 +60,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
     public void OnConnectedToServer(NetworkRunner runner)
     {
         Debug.Log("Connected to server.");
+       
     }
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)

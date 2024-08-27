@@ -1,7 +1,9 @@
+using Fusion;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class PlayerNameList : MonoBehaviour
@@ -15,6 +17,7 @@ public class PlayerNameList : MonoBehaviour
     [SerializeField] private GameObject _apps;
     [SerializeField] private GameObject _RoomPanel;
     [SerializeField] private GameObject _SettingsPanel;
+    private AgoraManager agora;
 
 
     void Start()
@@ -25,8 +28,26 @@ public class PlayerNameList : MonoBehaviour
         _playerCompOut.SetActive(false);
         _playerDetOut.SetActive(false); 
         _overlay.GetComponent<Button>().onClick.AddListener(closePlayerListNamePanel);
+        agora = AgoraManager.Instance;
     }
+    public void Logout()
+    {
     
+        UserDataManager.Instance.LogOut();
+
+        if (NetworkRunner.Instances.Count > 0)
+        {
+            NetworkRunner runner = NetworkRunner.Instances[0];
+            if (runner != null && runner.IsRunning)
+            {
+                runner.Shutdown();
+            }
+        }
+        agora.RtcEngine.LeaveChannel(); ;
+
+        SceneManager.LoadScene("Login");
+
+    }
     public void openPlayerListNamePanel()   
     {
        

@@ -6,7 +6,8 @@ public class RoomDetection : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.CompareTag("Player"))
+        Debug.LogError("collision detected"+ collision.name);
+        if (collision.CompareTag("Range"))
         {
             RoomManager.Instance.SetCurrentRoom(roomName);
         }
@@ -14,7 +15,7 @@ public class RoomDetection : MonoBehaviour
 
     private void OnTriggerExit2D(Collider2D collision)
     {
-        if (collision.CompareTag("Player"))
+        if (collision.CompareTag("Range"))
         {
             RoomManager.Instance.ClearCurrentRoom();
         }

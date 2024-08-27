@@ -59,6 +59,11 @@
             webview.ShowSafeBrowsing(url, configuration, callback);
         }
 
+        public void CloseSafeBrowsing()
+        {
+            webview.CloseSafeBrowsing();
+        }
+
         public void Close()
         {
             webview.Close();

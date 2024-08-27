@@ -5,7 +5,7 @@
 
     public static class GpmWebView
     {
-        public const string VERSION = "2.0.4";
+        public const string VERSION = "2.1.0";
 
         /// <summary>
         /// Create the webview and loads the web content referenced by the specified URL.

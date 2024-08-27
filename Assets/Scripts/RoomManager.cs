@@ -4,10 +4,10 @@ using System.Collections.Generic;
 
 public class RoomManager : MonoBehaviour
 {
-    public static RoomManager Instance { get; private set; } // to access the detection script
+    public static RoomManager Instance { get; private set; } 
 
     public List<GameObject> roomPrefabs; 
-    public List<GameObject> wallColliderPrefabs; // all wall colliders prefabs
+    public List<GameObject> wallColliderPrefabs;
 
     private Dictionary<string, GameObject> roomToColliderMap = new Dictionary<string, GameObject>();
     private string currentRoomName;
@@ -28,21 +28,21 @@ public class RoomManager : MonoBehaviour
 
     void Start()
     {
-        for (int i = 0; i < roomPrefabs.Count; i++)//to get the correct roomcolliders for respective rooms
+        for (int i = 0; i < roomPrefabs.Count; i++)
         {
             string roomName = roomPrefabs[i].GetComponent<RoomDetection>().roomName;
 
             if (i < wallColliderPrefabs.Count)
             {
                 roomToColliderMap.Add(roomName, wallColliderPrefabs[i]);
-                wallColliderPrefabs[i].SetActive(false); // room colliders will be initially inactive
+                wallColliderPrefabs[i].SetActive(false); 
             }
         }
 
         lockUnlockButton.onClick.AddListener(ToggleRoomLock);
     }
 
-    //transfered cuurentRoom = gameobject and currentRoom = null here when player enter and exit resp..
+    
     public void SetCurrentRoom(string roomName)
     {
         currentRoomName = roomName; 
@@ -54,8 +54,6 @@ public class RoomManager : MonoBehaviour
         currentRoomName = null;
         Debug.Log("Current room cleared.");
     }
-
-    //Assigned button in inspector will pe responsible for this function
     void ToggleRoomLock()
     {
         if (!roomToColliderMap.TryGetValue(currentRoomName, out GameObject wallCollider))

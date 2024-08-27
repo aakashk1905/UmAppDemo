@@ -26,6 +26,7 @@
             string url,
             GpmWebViewRequest.ConfigurationSafeBrowsing configuration = null,
             GpmWebViewCallback.GpmWebViewDelegate callback = null);
+        void CloseSafeBrowsing();
 
         void Close();
         bool IsActive();
