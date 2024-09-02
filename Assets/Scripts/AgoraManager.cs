@@ -8,6 +8,8 @@ using Agora_RTC_Plugin.API_Example;
 using UnityEngine.UI;
 using WebSocketSharp;
 using static Unity.Collections.Unicode;
+using UnityEngine.SocialPlatforms.Impl;
+using UnityEngine.Video;
 
 public class AgoraManager : MonoBehaviour
 {
@@ -18,13 +20,13 @@ public class AgoraManager : MonoBehaviour
     [SerializeField] private string tokenBase = "https://agoraapi.vercel.app/token";
     private bool isMuted = false;
     private bool isVideoEnabled = true;
+    private bool isSharingScreen = false;
+    public bool IsInitialized { get; private set; } = false;
 
     public IRtcEngine RtcEngine;
 
-    private string _token = "";
     public string _channelName = "";
 
-    private PlayerController mainPlayerInfo;
     private Dictionary<string, HashSet<uint>> channelUsers = new Dictionary<string, HashSet<uint>>();
 
 
@@ -33,7 +35,6 @@ public class AgoraManager : MonoBehaviour
     [Networked]
     public int channelCount { get; set; }
 
-    //Ui Buttons
     [SerializeField] private Sprite micOnSprite;
     [SerializeField] private Sprite micOffSprite;
     [SerializeField] private Button muteButton;
@@ -74,6 +75,7 @@ public class AgoraManager : MonoBehaviour
 
         RtcEngine.Initialize(context);
         RtcEngine.InitEventHandler(handler);
+        IsInitialized = true;
     }
     public void ToggleMute()
     {
@@ -105,8 +107,17 @@ public class AgoraManager : MonoBehaviour
 
     public void ToggleVideo()
     {
+       
         isVideoEnabled = !isVideoEnabled;
         RtcEngine.EnableLocalVideo(isVideoEnabled);
+        if (!isVideoEnabled)
+        {
+            RtcEngine.StopPreview();
+        }
+        else
+        {
+            RtcEngine.StartPreview();
+        }
         //UpdateButtonTexts();
     }
     private void SetBasicConfiguration()
@@ -114,15 +125,133 @@ public class AgoraManager : MonoBehaviour
         RtcEngine.EnableAudio();
         RtcEngine.EnableVideo();
 
-        //Setting up Video Configuration
         VideoEncoderConfiguration config = new VideoEncoderConfiguration();
-        config.dimensions = new VideoDimensions(640, 360);
+        config.dimensions = new VideoDimensions(480, 480);
         config.frameRate = 15;
         config.bitrate = 0;
         RtcEngine.SetVideoEncoderConfiguration(config);
 
         RtcEngine.SetChannelProfile(CHANNEL_PROFILE_TYPE.CHANNEL_PROFILE_LIVE_BROADCASTING);
         RtcEngine.SetClientRole(CLIENT_ROLE_TYPE.CLIENT_ROLE_BROADCASTER);
+    }
+
+    public void CreateLocalVideoView()
+    {
+       
+        RtcEngine.StartPreview();
+
+        VideoSurface videoSurface = MakeImageSurface(0.ToString(),"mine");
+        if (videoSurface != null)
+        {
+            videoSurface.SetForUser(0, "");
+            videoSurface.OnTextureSizeModify += (int width, int height) =>
+            {
+                float scale = (float)height / (float)width;
+                videoSurface.transform.localScale = new Vector3(1, scale, 1);
+            };
+            videoSurface.SetEnable(true);
+        }
+
+
+    }
+
+   public void ToggleScreenShare()
+    {
+        if (isSharingScreen)
+        {
+            StopScreenShare();
+        }
+        else
+        {
+            StartScreenShare();
+        }
+    }
+
+    private void StartScreenShare()
+    {
+       
+#if UNITY_ANDROID || UNITY_IPHONE
+            var parameters2 = new ScreenCaptureParameters2
+            {
+                captureAudio = true,
+                captureVideo = true
+            };
+            var nRet = RtcEngine.StartScreenCapture(parameters2);
+#else
+        var option = PrepareScreenCapture();
+        if (RtcEngine == null) return;
+        if (option.Contains("ScreenCaptureSourceType_Window"))
+        {
+            var windowId = option.Split("|".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)[1];
+            var nRet = RtcEngine.StartScreenCaptureByWindowId(
+                (ulong)long.Parse(windowId),
+                default(Rectangle),
+                default(ScreenCaptureParameters)
+            );
+        }
+        else
+        {
+            var dispId = uint.Parse(option.Split("|".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)[1]);
+            var nRet = RtcEngine.StartScreenCaptureByDisplayId(
+                dispId,
+                default(Rectangle),
+                new ScreenCaptureParameters { captureMouseCursor = true, frameRate = 30 }
+            );
+        }
+#endif
+
+        PublishScreenShare();
+        isSharingScreen = true;
+    }
+
+    private void StopScreenShare()
+    {
+        RtcEngine.StopScreenCapture();
+        UnpublishScreenShare();
+        isSharingScreen = false;
+    }
+
+    private void PublishScreenShare()
+    {
+        ChannelMediaOptions options = new ChannelMediaOptions();
+        options.publishCameraTrack.SetValue(false);
+        options.publishScreenTrack.SetValue(true);
+
+#if UNITY_ANDROID || UNITY_IPHONE
+            options.publishScreenCaptureAudio.SetValue(true);
+            options.publishScreenCaptureVideo.SetValue(true);
+#endif
+
+        var ret = RtcEngine.UpdateChannelMediaOptions(options);
+        Debug.Log("UpdateChannelMediaOptions for screen share returns: " + ret);
+    }
+
+    private void UnpublishScreenShare()
+    {
+        ChannelMediaOptions options = new ChannelMediaOptions();
+        options.publishCameraTrack.SetValue(true);
+        options.publishScreenTrack.SetValue(false);
+
+#if UNITY_ANDROID || UNITY_IPHONE
+            options.publishScreenCaptureAudio.SetValue(false);
+            options.publishScreenCaptureVideo.SetValue(false);
+#endif
+
+        var ret = RtcEngine.UpdateChannelMediaOptions(options);
+        Debug.Log("UpdateChannelMediaOptions for camera returns: " + ret);
+    }
+
+    private string PrepareScreenCapture()
+    {
+        SIZE t = new SIZE();
+        t.width = 360;
+        t.height = 240;
+        SIZE s = new SIZE();
+        s.width = 360;
+        s.height = 240;
+        var info = RtcEngine.GetScreenCaptureSources(t, s, true);
+        var w = info[0];
+        return string.Format("{0}: {1}-{2} | {3}", w.type, w.sourceName, w.sourceTitle, w.sourceId);
     }
 
     #endregion
@@ -187,9 +316,7 @@ public class AgoraManager : MonoBehaviour
 
     private void JoinAgoraChannel(PlayerController player, string channelName, string token)
     {
-        var result = RtcEngine.JoinChannel(token, channelName, "", (uint)player._playerID);
-        Debug.LogError("Results =" + result + " " + player._channelName + " " + (uint)player._playerID);
-
+        RtcEngine.JoinChannel(token, channelName, "", (uint)player._playerID);
         RtcEngine.StartPreview();
    
     }
@@ -262,7 +389,7 @@ public class AgoraManager : MonoBehaviour
         return false;
     }
 
-    private VideoSurface MakeImageSurface(string goName)
+    private VideoSurface MakeImageSurface(string goName,string mine="")
     {
         GameObject gameObject = new GameObject();
 
@@ -273,8 +400,8 @@ public class AgoraManager : MonoBehaviour
 
         gameObject.name = goName;
         gameObject.AddComponent<RawImage>();
-        gameObject.tag = "VideoSurface";
-        gameObject.AddComponent<UIElementDrag>();
+        gameObject.tag = "VideoSurface"+mine;
+        
         if (canvas != null)
         {
             gameObject.transform.SetParent(canvas.transform);
@@ -286,7 +413,7 @@ public class AgoraManager : MonoBehaviour
 
         gameObject.transform.Rotate(0f, 0.0f, 180.0f);
         gameObject.transform.localPosition = Vector3.zero;
-        gameObject.transform.localScale = new Vector3(2f, 3f, 1f);
+        gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
 
         VideoSurface videoSurface = gameObject.AddComponent<VideoSurface>();
         return videoSurface;
@@ -309,7 +436,6 @@ public class AgoraManager : MonoBehaviour
         {
             
             joinedUsers.Clear();
-            Debug.LogError("Player Left calleddddddd "+ connection.localUid);
             GameObject[] videoViews = GameObject.FindGameObjectsWithTag("VideoSurface");
             foreach (GameObject videoView in videoViews)
             {
@@ -320,13 +446,12 @@ public class AgoraManager : MonoBehaviour
 
         public override void OnUserJoined(RtcConnection connection, uint uid, int elapsed)
         {
-            Debug.LogError("on user joined callleedddd");
             if (!joinedUsers.Contains(uid))
             {
                 VideoSurface videoSurface = agoraManager.MakeImageSurface(uid.ToString());
                 if (videoSurface != null)
                 {
-                    videoSurface.SetForUser(uid, connection.channelId, uid == 0 ? VIDEO_SOURCE_TYPE.VIDEO_SOURCE_LOCAL : VIDEO_SOURCE_TYPE.VIDEO_SOURCE_REMOTE);
+                    videoSurface.SetForUser(uid, connection.channelId, VIDEO_SOURCE_TYPE.VIDEO_SOURCE_REMOTE);
                     videoSurface.SetEnable(true);
                 }
             }

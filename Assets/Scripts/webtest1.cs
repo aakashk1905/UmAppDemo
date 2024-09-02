@@ -7,30 +7,64 @@ public class WebViewController : MonoBehaviour
     // FullScreen
     public void ShowUrlFullScreen()
     {
-        Debug.LogError("button CLicked");
-        GpmWebView.ShowUrl(
-            "https://upskillmafia.com/dashboard/mern?tab=tasks",
-            new GpmWebViewRequest.Configuration()
-            {
-                style = GpmWebViewStyle.FULLSCREEN,
-                orientation = GpmOrientation.UNSPECIFIED,
-                isClearCookie = true,
-                isClearCache = true,
-                backgroundColor = "#FFFFFF",
-                isNavigationBarVisible = true,
-                navigationBarColor = "#4B96E6",
-                title = "Task Section",
-                isBackButtonVisible = true,
-                isForwardButtonVisible = true,
-                isCloseButtonVisible = true,
-                supportMultipleWindows = true,
+        GpmWebViewRequest.Configuration config = new GpmWebViewRequest.Configuration()
+        {
+            style = GpmWebViewStyle.FULLSCREEN,
+            orientation = GpmOrientation.PORTRAIT,
+            isClearCookie = false,
+            isClearCache = true,
+            backgroundColor = "#FFFFFF",
+            isNavigationBarVisible = true,
+            navigationBarColor = "#4B96E6",
+            title = "Task Section",
+            isBackButtonVisible = true,
+            isForwardButtonVisible = true,
+            isCloseButtonVisible = true,
+            supportMultipleWindows = true,
+
 #if UNITY_IOS
                 contentMode = GpmWebViewContentMode.MOBILE
 #endif
+        };
+        
+
+        GpmWebView.ShowUrl(
+            "https://upskillmafia.com/dashboard/mern?tab=tasks",
+            config,
+            (callback, data, error) =>
+            {
+                if (callback == GpmWebViewCallback.CallbackType.PageLoad)
+                {
+                    // Add cookies after the page has loaded
+                    AddCookiesViaJavaScript();
+                }
+                OnCallback(callback, data, error);
             },
-            OnCallback,
             new List<string>() { "USER_CUSTOM_SCHEME" }
         );
+    }
+
+    private void AddCookiesViaJavaScript()
+    {
+        string userEmail = UserDataManager.Instance.GetUserEmail();
+        string userName = UserDataManager.Instance.GetUserName();
+
+        string script = $@"
+            function setCookie(name, value, days) {{
+                var expires = '';
+                if (days) {{
+                    var date = new Date();
+                    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                    expires = '; expires=' + date.toUTCString();
+                }}
+                document.cookie = name + '=' + (value || '') + expires + '; path=/';
+            }}
+            setCookie('user_email', '{userEmail}', 7);
+            setCookie('user_name', '{userName}', 7);
+        ";
+
+
+        GpmWebView.ExecuteJavaScript(script);
     }
 
     // Popup default
@@ -106,6 +140,7 @@ public class WebViewController : MonoBehaviour
                 isClearCache = true,
                 isNavigationBarVisible = true,
                 isCloseButtonVisible = true,
+                addJavascript= "$@\"\r\n            function setCookie(name, value, days) {{\r\n                var expires = '';\r\n                if (days) {{\r\n                    var date = new Date();\r\n                    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));\r\n                    expires = '; expires=' + date.toUTCString();\r\n                }}\r\n                document.cookie = name + '=' + (value || '') + expires + '; path=/';\r\n            }}\r\n            setCookie('user_email', '{userEmail}', 7);\r\n            setCookie('user_name', '{userName}', 7);\r\n        \"",
                 margins = new GpmWebViewRequest.Margins
                 {
                     hasValue = true,

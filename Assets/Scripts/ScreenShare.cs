@@ -1,4 +1,4 @@
-using Agora.Rtc;
+/*using Agora.Rtc;
 using Agora_RTC_Plugin.API_Example.Examples.Advanced.ScreenShare;
 using io.agora.rtc.demo;
 using System;
@@ -122,3 +122,4 @@ public class ScreenShare : MonoBehaviour
 #endif
     }
 }
+*/

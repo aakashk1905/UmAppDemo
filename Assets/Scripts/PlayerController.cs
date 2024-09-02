@@ -7,8 +7,7 @@ using TMPro;
 using WebSocketSharp;
 using System;
 using System.Linq;
-using UnityEngine.UI;
-using UnityEngine.SceneManagement;
+
 
 public class PlayerController : NetworkBehaviour
 {
@@ -29,7 +28,9 @@ public class PlayerController : NetworkBehaviour
     private ChangeDetector _changeDetector;
     [Networked, OnChangedRender(nameof(OnNameChanged))]
     public NetworkString<_128> PlayerName { get; set; } = "";
-    [Networked, OnChangedRender(nameof(OnIDChanged))]
+    [Networked, OnChangedRender(nameof(OnRoomChanged))]
+    public NetworkBool IsInRoom { get; set; } = false;
+    [Networked]
     public int _playerID { get; set; }
     [Networked, OnChangedRender(nameof(OnChannelChanged))]
     public NetworkString<_128> _channelName { get; set; } = "";
@@ -48,6 +49,7 @@ public class PlayerController : NetworkBehaviour
     private Vector3 _updatedPosition = Vector3.zero;
     public float _speed = 5f;
     private int clickCount = 0;
+    public GameObject range;
 
     [Networked] private Vector3 _targetPosition { get; set; }
     [Networked] private NetworkBool _isTeleporting { get; set; }
@@ -65,12 +67,12 @@ public class PlayerController : NetworkBehaviour
         _speed = 5f;
         transform.name = PlayerName.Value;
         GetComponentInChildren<TMP_Text>().text = PlayerName.Value;
-        Transform rangeTransform = transform.Find("Range");
+        range = transform.Find("Range").gameObject;
         Transform roomTransform = transform.Find("RoomTrigger");
         Roomtrigger = roomTransform.GetComponent<CircleCollider2D>();
-        if (rangeTransform != null)
+        if (range != null)
         {
-            Rangetrigger = rangeTransform.GetComponent<CircleCollider2D>();   
+            Rangetrigger = range.GetComponent<CircleCollider2D>();   
         }
         _agoraManager = AgoraManager.Instance;
         _rb = GetComponent<NetworkRigidbody2D>();
@@ -90,20 +92,19 @@ public class PlayerController : NetworkBehaviour
                 Debug.LogError("NetworkedDSU is not initialized!");
             }
         }
-
+        UpdateSprite();
+        if (Object.HasInputAuthority)
+        {
+            _agoraManager.CreateLocalVideoView();
+        }
     }
 
     void LoadPlayerData()
     {
         if (UserDataManager.Instance != null && UserDataManager.Instance.CurrentUser != null)
         {
-            // Access user data
             string name = UserDataManager.Instance.GetUserName();
-            string userEmail = UserDataManager.Instance.GetUserEmail();
-            string userMobile = UserDataManager.Instance.GetUserMobile();
-            string userRole = UserDataManager.Instance.GetUserRole();
-
-                RPC_RequestSetPlayerInfo(Object.InputAuthority.PlayerId, name);
+           RPC_RequestSetPlayerInfo(Object.InputAuthority.PlayerId, name);
   
         }
     }
@@ -111,7 +112,6 @@ public class PlayerController : NetworkBehaviour
     [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
     private void RPC_RequestSetPlayerInfo(int id, string nickname)
     {
-        Debug.Log($"{id} nicceeeeeeeeeeeeeeee {nickname}");
         RPC_SetPlayerInfo(Object.InputAuthority, id, nickname);
     }
 
@@ -170,9 +170,7 @@ public class PlayerController : NetworkBehaviour
     private void TeleportPlayerToMousePosition()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
         int planeMask = LayerMask.GetMask("Ground");
-
         RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction, Mathf.Infinity, planeMask);
 
         if (hit.collider != null)
@@ -190,21 +188,10 @@ public class PlayerController : NetworkBehaviour
         _isTeleporting = true;
     }
 
-
-    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-    public void Rpc_UpdateCharacterinRoom(bool Value){
-        if (Object.HasInputAuthority){
-            GameObject range = GameObject.Find("Range");
-            range.GetComponent<SpriteRenderer>().enabled = Value;
-            trigger.enabled = Value;
-        }
-    }
-
     #region Collison Management
 
     public void OnNameChanged()
     {
-        Debug.LogError("name changed"+ PlayerName);
         if (!string.IsNullOrEmpty(PlayerName.Value))
         {
             transform.name = PlayerName.Value;
@@ -219,9 +206,16 @@ public class PlayerController : NetworkBehaviour
             }
         }
     }
-    public void OnIDChanged()
+    public void OnRoomChanged()
     {
-        Debug.LogError("name" + _playerID);
+        Debug.LogError("Room changed " + _playerID + " === "+IsInRoom);
+        UpdateSprite(); 
+    }
+    public void UpdateSprite()
+    {
+        
+        range.GetComponent<SpriteRenderer>().enabled = !IsInRoom;
+        trigger.enabled = !IsInRoom;
     }
 
 
@@ -368,7 +362,6 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleCollisionExit(PlayerController otherPlayer)
     {
-        Debug.LogError($"Exit calledddd {_playerID}  {otherPlayer._playerID}");
         RPC_HandleOnTriggerExit(otherPlayer);
         
     }
@@ -562,7 +555,12 @@ public class PlayerController : NetworkBehaviour
     public void Rpc_SetChannelName(string name)
     {
         _channelName = name;
-        Debug.Log("Channel name set to: " + name);
+    }
+
+    [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+    public void Rpc_UpdateIsInRoom(bool value)
+    {
+        IsInRoom = value;
     }
 
     public string GetToken() { return _token; }
