@@ -15,8 +15,11 @@ public class AgoraManager : MonoBehaviour
 {
     public static AgoraManager Instance { get; private set; }
 
+
+
     [SerializeField] private string appID;
     [SerializeField] private GameObject canvas;
+    [SerializeField] private GameObject FullScreen;
     [SerializeField] private string tokenBase = "https://agoraapi.vercel.app/token";
     private bool isMuted = false;
     private bool isVideoEnabled = true;
@@ -29,6 +32,7 @@ public class AgoraManager : MonoBehaviour
 
     private Dictionary<string, HashSet<uint>> channelUsers = new Dictionary<string, HashSet<uint>>();
 
+    private Dictionary<uint, GameObject> videoViews = new Dictionary<uint, GameObject>();
 
     public CONNECTION_STATE_TYPE connectionState = CONNECTION_STATE_TYPE.CONNECTION_STATE_DISCONNECTED;
     [Networked] public Dictionary<string, int> Bridges { get; set; }
@@ -38,6 +42,8 @@ public class AgoraManager : MonoBehaviour
     [SerializeField] private Sprite micOnSprite;
     [SerializeField] private Sprite micOffSprite;
     [SerializeField] private Button muteButton;
+
+    private PlayerController localPlayerController;
 
     private void Awake()
     {
@@ -167,6 +173,11 @@ public class AgoraManager : MonoBehaviour
         }
     }
 
+    public void SetLocalPlayerController(PlayerController playerController)
+    {
+        localPlayerController = playerController;
+    }
+
     private void StartScreenShare()
     {
        
@@ -201,12 +212,20 @@ public class AgoraManager : MonoBehaviour
 #endif
 
         PublishScreenShare();
+        if (localPlayerController != null)
+        {
+            localPlayerController.RpcNotifyScreenShareState(true);
+        }
         isSharingScreen = true;
     }
 
     private void StopScreenShare()
     {
         RtcEngine.StopScreenCapture();
+        if (localPlayerController != null)
+        {
+            localPlayerController.RpcNotifyScreenShareState(false);
+        }
         UnpublishScreenShare();
         isSharingScreen = false;
     }
@@ -416,8 +435,48 @@ public class AgoraManager : MonoBehaviour
         gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
 
         VideoSurface videoSurface = gameObject.AddComponent<VideoSurface>();
+        videoViews[(uint)int.Parse(goName)] = gameObject;
         return videoSurface;
     }
+
+    private void ShowFullScreenView(uint uid)
+    {
+
+        if (videoViews.TryGetValue(uid, out GameObject videoView))
+        {
+            videoView.transform.SetParent(FullScreen.transform, false);
+            RectTransform rectTransform = videoView.GetComponent<RectTransform>();
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.sizeDelta = Vector2.zero;
+            rectTransform.anchoredPosition = Vector2.zero;
+        }
+    }
+    public void HandleRemoteScreenShareState(PlayerController player, bool isScreenSharing)
+    {
+        uint uid = (uint)player.Object.InputAuthority.PlayerId;
+        if (isScreenSharing)
+        {
+            ShowFullScreenView(uid);
+        }
+        else
+        {
+            RestoreNormalView(uid);
+        }
+    }
+    private void RestoreNormalView(uint uid)
+    {
+        if (videoViews.TryGetValue(uid, out GameObject videoView))
+        {
+            videoView.transform.SetParent(canvas.transform, false);
+            RectTransform rectTransform = videoView.GetComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.sizeDelta = new Vector2(200, 200);
+            rectTransform.anchoredPosition = Vector2.zero;
+        }
+    }
+
 
     #endregion
 

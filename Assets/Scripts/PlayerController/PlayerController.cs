@@ -34,6 +34,10 @@ public class PlayerController : NetworkBehaviour
     public int _playerID { get; set; }
     [Networked, OnChangedRender(nameof(OnChannelChanged))]
     public NetworkString<_128> _channelName { get; set; } = "";
+
+/*    [Networked,OnChangedRender(nameof(OnScreenShareStateChanged))]
+    public NetworkBool IsScreenSharing { get; set; }*/
+
     public string myChannel  = "";
     public string prevChannel  = "";
     public string _token = "";
@@ -62,6 +66,7 @@ public class PlayerController : NetworkBehaviour
         if (Object.HasInputAuthority)
         {
             LoadPlayerData();
+            
         }
         _player = GetComponent<SpriteRenderer>();
         _speed = 5f;
@@ -95,6 +100,7 @@ public class PlayerController : NetworkBehaviour
         UpdateSprite();
         if (Object.HasInputAuthority)
         {
+            _agoraManager.SetLocalPlayerController(this);
             _agoraManager.CreateLocalVideoView();
         }
     }
@@ -103,7 +109,7 @@ public class PlayerController : NetworkBehaviour
     {
         if (UserDataManager.Instance != null && UserDataManager.Instance.CurrentUser != null)
         {
-            string name = UserDataManager.Instance.GetUserName();
+           string name = UserDataManager.Instance.GetUserName();
            RPC_RequestSetPlayerInfo(Object.InputAuthority.PlayerId, name);
   
         }
@@ -115,8 +121,19 @@ public class PlayerController : NetworkBehaviour
         RPC_SetPlayerInfo(Object.InputAuthority, id, nickname);
     }
 
+  
 
-    
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RpcNotifyScreenShareState(bool isScreenSharing)
+    {
+        RpcNotifyScreenShareStateAll(isScreenSharing);
+    }
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RpcNotifyScreenShareStateAll(bool isScreenSharing)
+    {
+        _agoraManager.HandleRemoteScreenShareState(this, isScreenSharing);
+    }
+
     public override void FixedUpdateNetwork()
     {
         if (GetInput(out NetworkInputData input))
@@ -200,10 +217,7 @@ public class PlayerController : NetworkBehaviour
             {
                 nameText.text = PlayerName.Value;
             }
-            else
-            {
-                Debug.LogError("TMP_Text component not found on player object.");
-            }
+            
         }
     }
     public void OnRoomChanged()
