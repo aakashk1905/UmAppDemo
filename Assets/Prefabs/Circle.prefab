@@ -545,6 +545,8 @@ GameObject:
   - component: {fileID: 926869420221776968}
   - component: {fileID: 837159230333937357}
   - component: {fileID: 1981579918034547916}
+  - component: {fileID: 8115464113791692850}
+  - component: {fileID: 48717423425022350}
   m_Layer: 0
   m_Name: Circle
   m_TagString: Player
@@ -612,7 +614,7 @@ SpriteRenderer:
   m_SortingLayerID: -1529668691
   m_SortingLayer: 2
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: b1e13f72e04f09e4186143791b0c7c6b, type: 3}
+  m_Sprite: {fileID: -1854762228, guid: ede9aad8914319543b50a84737c7cc90, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -699,6 +701,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 2
   _rb: {fileID: 0}
+  trigger: {fileID: 0}
   _sprites:
   - {fileID: 21300000, guid: b1e13f72e04f09e4186143791b0c7c6b, type: 3}
   - {fileID: 21300000, guid: e5157c5bd27f2f940966328cc1f60276, type: 3}
@@ -710,6 +713,8 @@ MonoBehaviour:
     _length: 0
     _data:
       Data: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  _IsInRoom:
+    _value: 0
   __playerID: 0
   __channelName:
     _length: 0
@@ -722,6 +727,8 @@ MonoBehaviour:
   _player: {fileID: 5665942612296984450}
   neighbours: []
   _speed: 5
+  range: {fileID: 0}
+  animator: {fileID: 8115464113791692850}
 --- !u!114 &926869420221776968
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -742,6 +749,7 @@ MonoBehaviour:
   - {fileID: 6610207426945989407}
   - {fileID: 837159230333937357}
   - {fileID: 1981579918034547916}
+  - {fileID: 48717423425022350}
 --- !u!114 &837159230333937357
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -777,6 +785,45 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 6610207426945989407}
+--- !u!95 &8115464113791692850
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6442136690671062928}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 9fbb4a1c97f2bb143a185d605e57ed15, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &48717423425022350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6442136690671062928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Animator: {fileID: 8115464113791692850}
+  TotalWords: 5
+  ApplyTiming: 2
+  SyncSettings: -1
+  StateHashes: 00000000cfc590586a8177e7a1f7ab0dbb6691e7
+  TriggerHashes: 00000000
 --- !u!1 &6473850588293708397
 GameObject:
   m_ObjectHideFlags: 0

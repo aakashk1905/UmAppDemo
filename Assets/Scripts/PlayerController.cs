@@ -51,6 +51,8 @@ public class PlayerController : NetworkBehaviour
     private int clickCount = 0;
     public GameObject range;
 
+    public Animator animator;
+
     [Networked] private Vector3 _targetPosition { get; set; }
     [Networked] private NetworkBool _isTeleporting { get; set; }
 
@@ -124,13 +126,17 @@ public class PlayerController : NetworkBehaviour
             _rb.Rigidbody.velocity = input.directions * moveSpeed;
         }
 
-        // if (Object.HasInputAuthority)
-        // {
-        //     CheckForDoubleClick();
-        // }
+        animator.SetFloat("Horizontal", input.directions.x);
+        animator.SetFloat("Vertical", input.directions.y);
+        animator.SetFloat("Speed", input.directions.sqrMagnitude);
+
+        
         if (movementJoystick.Direction.y != 0 || movementJoystick.Direction.x != 0)
         {
             _rb.Rigidbody.velocity = new Vector2(movementJoystick.Direction.x * moveSpeed, movementJoystick.Direction.y * moveSpeed);
+            animator.SetFloat("Horizontal", movementJoystick.Direction.x);
+            animator.SetFloat("Vertical", movementJoystick.Direction.y);
+            animator.SetFloat("Speed", movementJoystick.Direction.sqrMagnitude);
         }
         if (_isTeleporting)
         {
