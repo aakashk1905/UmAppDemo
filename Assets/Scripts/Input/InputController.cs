@@ -7,24 +7,58 @@ using UnityEngine;
 public class InputController : NetworkBehaviour, INetworkRunnerCallbacks
 {
     [SerializeField] private PlayerController player;
+    [SerializeField] private Joystick joystick;
+    private Canvas joystickCanvas;
 
     public override void Spawned()
     {
-        if (Runner.LocalPlayer == Object.InputAuthority)
+        if (Object.HasInputAuthority)
         {
             Runner.AddCallbacks(this);
+
+            // Find the Canvas and Joystick
+            joystickCanvas = GetComponentInChildren<Canvas>();
+            if (joystickCanvas != null)
+            {
+                joystick = joystickCanvas.GetComponentInChildren<Joystick>();
+                if (joystick == null)
+                {
+                    Debug.LogError("Joystick not found in Canvas children!");
+                }
+            }
+            else
+            {
+                Debug.LogError("Canvas not found in player prefab children!");
+            }
+        }
+        else
+        {
+            Canvas nonLocalCanvas = GetComponentInChildren<Canvas>();
+            if (nonLocalCanvas != null)
+            {
+                nonLocalCanvas.gameObject.SetActive(false);
+            }
         }
     }
 
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
-        if (runner != null && runner.IsRunning)
+        if (Object.HasInputAuthority)
         {
-
+           
             var data = new NetworkInputData();
 
             Vector2 direction = Vector2.zero;
+           
+
+            if (joystick != null)
+            {
+                direction.x = joystick.Horizontal;
+                direction.y = joystick.Vertical;
+            }
+
+
 
             if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
                 direction += Vector2.up;
@@ -40,6 +74,9 @@ public class InputController : NetworkBehaviour, INetworkRunnerCallbacks
 
             if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
                 direction += Vector2.right;
+
+            if (direction.magnitude > 1)
+                direction.Normalize();
 
             data.directions = direction;
             input.Set(data);

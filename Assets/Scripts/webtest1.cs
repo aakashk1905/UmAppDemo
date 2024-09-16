@@ -4,9 +4,17 @@ using Gpm.WebView;
 
 public class WebViewController : MonoBehaviour
 {
-    // FullScreen
+    public GameObject prefabToSpawn;
     public void ShowUrlFullScreen()
     {
+#if !UNITY_ANDROID && !UNITY_IOS
+        if (prefabToSpawn != null)
+        {
+            Instantiate(prefabToSpawn, Vector3.zero, Quaternion.identity);
+            return;
+        }
+       
+#endif
         GpmWebViewRequest.Configuration config = new GpmWebViewRequest.Configuration()
         {
             style = GpmWebViewStyle.FULLSCREEN,
@@ -67,7 +75,7 @@ public class WebViewController : MonoBehaviour
         GpmWebView.ExecuteJavaScript(script);
     }
 
-    // Popup default
+   /* // Popup default
     public void ShowUrlPopupDefault()
     {
         GpmWebView.ShowUrl(
@@ -159,7 +167,7 @@ public class WebViewController : MonoBehaviour
             new List<string>() { "USER_CUSTOM_SCHEME" }
         );
     }
-
+*/
     private void OnCallback(GpmWebViewCallback.CallbackType callbackType, string data, GpmWebViewError error)
     {
         Debug.LogError($"WebView Callback: {callbackType}");

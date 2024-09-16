@@ -10,7 +10,7 @@ public class RoomManager : MonoBehaviour
     public List<GameObject> wallColliderPrefabs;
 
     private Dictionary<string, GameObject> roomToColliderMap = new Dictionary<string, GameObject>();
-    private string currentRoomName;
+    public string currentRoomName;
     public Button lockUnlockButton;
 
     private void Awake()

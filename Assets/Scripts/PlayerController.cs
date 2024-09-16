@@ -7,22 +7,24 @@ using TMPro;
 using WebSocketSharp;
 using System;
 using System.Linq;
+using UnityEngine.EventSystems;
 
 
 public class PlayerController : NetworkBehaviour
 {
     [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private NetworkRigidbody2D _rb;
-    public CircleCollider2D trigger;
+    public BoxCollider2D trigger;
     private CircleCollider2D Rangetrigger;
     private CircleCollider2D Roomtrigger;
+    private GameObject targetIndicator;
 
-    [SerializeField] public Sprite[] _sprites;
+
+    [SerializeField] private LayerMask raycastMask;
+    public Sprite[] _sprites;
 
     public NetworkTableManager networkTableManager;
     public NetworkedDSU _networkedDSU;
-    public Joystick movementJoystick;
-
 
     public bool IamBridge = false;
     private ChangeDetector _changeDetector;
@@ -51,8 +53,11 @@ public class PlayerController : NetworkBehaviour
     private int clickCount = 0;
     public GameObject range;
 
+    private Vector2 lastClickPosition;
+    private float MAX_CLICK_DISTANCE = 10f;
+    public bool isTimeCheckAllowed = true;
     public Animator animator;
-
+    [SerializeField] public GameObject movementJoystick;
     [Networked] private Vector3 _targetPosition { get; set; }
     [Networked] private NetworkBool _isTeleporting { get; set; }
 
@@ -61,11 +66,17 @@ public class PlayerController : NetworkBehaviour
 
     public override void Spawned()
     {
+#if !UNITY_ANDROID && !UNITY_IOS
+        Destroy(movementJoystick);
+
+#endif
         if (Object.HasInputAuthority)
         {
             LoadPlayerData();
         }
+        raycastMask = ~0;
         _player = GetComponent<SpriteRenderer>();
+       
         _speed = 5f;
         transform.name = PlayerName.Value;
         GetComponentInChildren<TMP_Text>().text = PlayerName.Value;
@@ -78,7 +89,7 @@ public class PlayerController : NetworkBehaviour
         }
         _agoraManager = AgoraManager.Instance;
         _rb = GetComponent<NetworkRigidbody2D>();
-        trigger = GetComponent<CircleCollider2D>();
+        trigger = GetComponent<BoxCollider2D>();
         _changeDetector = new ChangeDetector();
         _channelName = "";
         networkTableManager = NetworkTableManager.Instance;
@@ -117,75 +128,184 @@ public class PlayerController : NetworkBehaviour
         RPC_SetPlayerInfo(Object.InputAuthority, id, nickname);
     }
 
-
-    
     public override void FixedUpdateNetwork()
     {
+        Vector2 moveDirection = Vector2.zero;
+
         if (GetInput(out NetworkInputData input))
         {
-            _rb.Rigidbody.velocity = input.directions * moveSpeed;
+            moveDirection = input.directions;
         }
 
-        animator.SetFloat("Horizontal", input.directions.x);
-        animator.SetFloat("Vertical", input.directions.y);
-        animator.SetFloat("Speed", input.directions.sqrMagnitude);
 
-        
-        if (movementJoystick.Direction.y != 0 || movementJoystick.Direction.x != 0)
+         if (Object.HasInputAuthority)
+         {
+             CheckForDoubleClick();
+         }
+
+        if (Mathf.Abs(moveDirection.x) > Mathf.Abs(moveDirection.y))
         {
-            _rb.Rigidbody.velocity = new Vector2(movementJoystick.Direction.x * moveSpeed, movementJoystick.Direction.y * moveSpeed);
-            animator.SetFloat("Horizontal", movementJoystick.Direction.x);
-            animator.SetFloat("Vertical", movementJoystick.Direction.y);
-            animator.SetFloat("Speed", movementJoystick.Direction.sqrMagnitude);
+            moveDirection.y = 0;
         }
+        else
+        {
+            moveDirection.x = 0;
+        }
+
+        moveDirection = moveDirection.normalized;
+
+        _rb.Rigidbody.velocity = moveDirection * moveSpeed;
+
+        animator.SetFloat("Horizontal", moveDirection.x);
+        animator.SetFloat("Vertical", moveDirection.y);
+        animator.SetFloat("Speed", moveDirection.magnitude);
+
         if (_isTeleporting)
         {
+            if (targetIndicator == null)
+            {
+                CreateTargetIndicator();
+            }
+
             trigger.enabled = false;
             Rangetrigger.enabled = false;
             Roomtrigger.enabled = false;
-            transform.position = Vector3.MoveTowards(transform.position, _targetPosition, _speed * Runner.DeltaTime);
+            animator.enabled = false;
+            _player.sprite = _sprites[0];
+            range.GetComponent<SpriteRenderer>().enabled = false;
+
+            Vector2 direction = _targetPosition - transform.position;
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            transform.SetPositionAndRotation(
+                Vector3.MoveTowards(transform.position, _targetPosition, moveSpeed * Runner.DeltaTime),
+                Quaternion.AngleAxis(angle - 45, Vector3.forward)
+            );
+
             if (Vector3.Distance(transform.position, _targetPosition) < 0.01f)
             {
-                _isTeleporting = false;
-                trigger.enabled = true;
-                Rangetrigger.enabled = true;
-                Roomtrigger.enabled = true;
+                EndTeleportation();
             }
+        }
+    }
+
+    private void CreateTargetIndicator()
+    {
+        targetIndicator = new GameObject("TeleportTargetIndicator");
+        SpriteRenderer spriteRenderer = targetIndicator.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = _sprites[2]; 
+        targetIndicator.transform.position = _targetPosition;
+        targetIndicator.transform.localScale = new Vector3(0.1f, 0.1f, 1f);
+    }
+
+    private void EndTeleportation()
+    {
+        _isTeleporting = false;
+        trigger.enabled = true;
+        Rangetrigger.enabled = true;
+        Roomtrigger.enabled = true;
+        transform.rotation = Quaternion.identity;
+        animator.enabled = true;
+        range.GetComponent<SpriteRenderer>().enabled = true;
+
+        if (targetIndicator != null)
+        {
+            Destroy(targetIndicator);
+            targetIndicator = null;
         }
     }
 
     private void CheckForDoubleClick()
     {
-        if (Input.GetMouseButtonDown(0))
+        /* if (Input.GetMouseButtonDown(0))
+         {
+             clickCount++;
+             float timeSinceLastClick = Time.time - lastClickTime;
+             float distanceBetweenClicks = Vector2.Distance(Input.mousePosition, lastClickPosition);
+
+             if (timeSinceLastClick < DOUBLE_CLICK_TIME && clickCount == 2 && distanceBetweenClicks <= MAX_CLICK_DISTANCE)
+             {
+                 TeleportPlayerToMousePosition(Input.mousePosition);
+             }
+             if (clickCount >= 2)
+             {
+                 clickCount = 0;
+             }
+             lastClickTime = Time.time;
+             lastClickPosition = Input.mousePosition;
+         }*/
+        if (Input.GetMouseButtonUp(0))
         {
-            clickCount++;
-            float timeSinceLastClick = Time.time - lastClickTime;
-            if (timeSinceLastClick < DOUBLE_CLICK_TIME && clickCount ==2)
-            {
-                TeleportPlayerToMousePosition();
-            }
-            if(clickCount >= 2)
-            {
-                clickCount = 0;
-            }
+            clickCount += 1;
+        }
+        if (clickCount == 1 && isTimeCheckAllowed)
+        {
             lastClickTime = Time.time;
+            StartCoroutine(DetectDoubleLeftClick());
         }
     }
 
-
-    private void TeleportPlayerToMousePosition()
+    private IEnumerator DetectDoubleLeftClick()
     {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        int planeMask = LayerMask.GetMask("Ground");
-        RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction, Mathf.Infinity, planeMask);
-
-        if (hit.collider != null)
+        isTimeCheckAllowed = false;
+        while (Time.time < lastClickTime + 0.3f)
         {
-            Vector3 targetPosition = hit.point;
-            RPC_RequestTeleport(targetPosition);
+            if (clickCount == 2)
+            {
+                TeleportPlayerToMousePosition(Input.mousePosition);
+                break;
+            }
+            yield return new WaitForEndOfFrame();
         }
-       
+        clickCount = 0;
+        isTimeCheckAllowed = true;
     }
+
+    private void TeleportPlayerToMousePosition(Vector2 screenPosition)
+    {
+        if (IsPointerOverUIElement(screenPosition))
+        {
+            return;
+        }
+
+        Vector2 mousePosition = Camera.main.ScreenToWorldPoint(screenPosition);
+        RaycastHit2D[] hits = Physics2D.RaycastAll(mousePosition, Vector2.zero, Mathf.Infinity, raycastMask);
+
+        if (hits.Length > 0)
+        {
+            System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
+            RaycastHit2D hit = hits[0];
+            int hitLayerIndex = hit.collider.gameObject.layer;
+            if(hitLayerIndex == 8)
+            {
+                RPC_RequestTeleport(hit.point);
+            }else
+            {
+                return;
+            }
+ 
+        }
+
+    }
+
+
+    private bool IsPointerOverUIElement(Vector2 screenPosition)
+    {
+        PointerEventData eventData = new(EventSystem.current);
+        eventData.position = screenPosition;
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+
+        foreach (RaycastResult result in results)
+        {
+            if (result.gameObject.layer != 8)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
     [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
     private void RPC_RequestTeleport(Vector3 targetPosition)
@@ -214,7 +334,6 @@ public class PlayerController : NetworkBehaviour
     }
     public void OnRoomChanged()
     {
-        Debug.LogError("Room changed " + _playerID + " === "+IsInRoom);
         UpdateSprite(); 
     }
     public void UpdateSprite()
@@ -245,15 +364,9 @@ public class PlayerController : NetworkBehaviour
                 }
                
             }
-            Runner.StartCoroutine(LogNetworkTableWithDelay());
-
         }
     }
-    private IEnumerator LogNetworkTableWithDelay()
-    {
-        yield return new WaitForSeconds(1f);
-        LogNetworkTable();
-    }
+   
 
     private bool IsnullorDummy(String name)
     {
@@ -473,7 +586,7 @@ public class PlayerController : NetworkBehaviour
         }
 
         UpdatePlayerSprite();
-        LogNetworkTable();
+        //LogNetworkTable();
     }
 
 
@@ -504,6 +617,13 @@ public class PlayerController : NetworkBehaviour
         Rpc_UpdatePlayerSprite(neighbours.Count <= 0);
     }
 
+
+    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
+    private void Rpc_UpdatePlayerSpriteTeleport(bool teleporting)
+    {
+        Rpc_UpdatePlayerSprite(teleporting);
+    }
+
     [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
     private void Rpc_UpdatePlayerSprite(bool isAlone)
     {
@@ -517,7 +637,7 @@ public class PlayerController : NetworkBehaviour
         Debug.LogError("Merging channels: " + channel1 + " and " + channel2);
         Dictionary<string, List<PlayerRef>> networkTable = networkTableManager.GetNetworkTableAsDictionary();
 
-        LogNetworkTable();
+        //LogNetworkTable();
 
         if (!networkTable.ContainsKey(channel1) || !networkTable.ContainsKey(channel2)) return;
 

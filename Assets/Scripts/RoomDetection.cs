@@ -4,12 +4,19 @@ public class RoomDetection : MonoBehaviour
 {
     public string roomName;
 
+
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.CompareTag("Range"))
+        BoxCollider2D mybox = GetComponent<BoxCollider2D>();
+        Debug.LogError(mybox.isTrigger);
+        if (!mybox.isTrigger)
+        {
+            return;
+        }
+        if (collision.CompareTag("Range") )
         {
             PlayerController playerController = GetPlayerControllerFromRange(collision);
-            if (playerController != null)
+            if (playerController != null && !playerController.IsInRoom )
             {
                 RoomManager.Instance.SetCurrentRoom(roomName,playerController);
                 
@@ -19,7 +26,14 @@ public class RoomDetection : MonoBehaviour
 
     private void OnTriggerExit2D(Collider2D collision)
     {
-        if (collision.CompareTag("Range"))
+        BoxCollider2D mybox = GetComponent<BoxCollider2D>();
+
+        if (!mybox.isTrigger)
+        {
+            return;
+        }
+
+        if (collision.CompareTag("Range") && RoomManager.Instance.currentRoomName == roomName)
         {
             PlayerController playerController = GetPlayerControllerFromRange(collision);
             if (playerController != null)

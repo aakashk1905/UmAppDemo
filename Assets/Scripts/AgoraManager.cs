@@ -265,7 +265,7 @@ public class AgoraManager : MonoBehaviour
             Debug.LogError("It is nulll");
         }
        
-        player.LogNetworkTable();
+       // player.LogNetworkTable();
         Debug.LogError("Adding " + player._playerID + " " + channelName);
         string tempToken = GetTokenForChannel(channelName, player);
         player.isInChannel = true;
