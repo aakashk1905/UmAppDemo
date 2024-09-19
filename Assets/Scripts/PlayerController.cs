@@ -216,23 +216,53 @@ public class PlayerController : NetworkBehaviour
 
     private void CheckForDoubleClick()
     {
-        /* if (Input.GetMouseButtonDown(0))
-         {
-             clickCount++;
-             float timeSinceLastClick = Time.time - lastClickTime;
-             float distanceBetweenClicks = Vector2.Distance(Input.mousePosition, lastClickPosition);
+        if (Input.touchSupported && Application.platform != RuntimePlatform.WebGLPlayer)
+        {
+            HandleTouchForTeleport();
+        }
+        else
+        {
+            HandleMouseForTeleport();
+        }
+    }
 
-             if (timeSinceLastClick < DOUBLE_CLICK_TIME && clickCount == 2 && distanceBetweenClicks <= MAX_CLICK_DISTANCE)
-             {
-                 TeleportPlayerToMousePosition(Input.mousePosition);
-             }
-             if (clickCount >= 2)
-             {
-                 clickCount = 0;
-             }
-             lastClickTime = Time.time;
-             lastClickPosition = Input.mousePosition;
-         }*/
+    private void HandleTouchForTeleport()
+    {
+        if (Input.touchCount == 1)
+        {
+            Touch touch = Input.GetTouch(0);
+
+            if (touch.phase == TouchPhase.Ended && touch.tapCount == 2)
+            {
+                TeleportPlayerToMousePosition(touch.position);
+            }
+        }
+    }
+
+/*    private void TeleportPlayerToScreenPosition(Vector2 screenPosition)
+    {
+        if (IsPointerOverUIElement(screenPosition))
+        {
+            return;
+        }
+
+        Vector2 worldPosition = Camera.main.ScreenToWorldPoint(screenPosition);
+        RaycastHit2D[] hits = Physics2D.RaycastAll(worldPosition, Vector2.zero, Mathf.Infinity, raycastMask);
+
+        if (hits.Length > 0)
+        {
+            System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
+            RaycastHit2D hit = hits[0];
+            int hitLayerIndex = hit.collider.gameObject.layer;
+            if (hitLayerIndex == 8)
+            {
+                RPC_RequestTeleport(hit.point);
+            }
+        }
+    }
+*/
+    private void HandleMouseForTeleport()
+    {
         if (Input.GetMouseButtonUp(0))
         {
             clickCount += 1;
@@ -243,6 +273,9 @@ public class PlayerController : NetworkBehaviour
             StartCoroutine(DetectDoubleLeftClick());
         }
     }
+
+
+
 
     private IEnumerator DetectDoubleLeftClick()
     {
