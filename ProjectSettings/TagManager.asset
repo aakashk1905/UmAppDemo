@@ -10,11 +10,12 @@ TagManager:
   - Locked
   - Range
   - VideoSurfacemine
+  - Browser
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - UserVideos
   - Water
   - UI
   - Aura

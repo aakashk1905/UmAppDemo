@@ -401,6 +401,7 @@ public class AgoraManager : MonoBehaviour
         gameObject.name = goName;
         gameObject.AddComponent<RawImage>();
         gameObject.tag = "VideoSurface"+mine;
+        gameObject.layer = 12;
         
         if (canvas != null)
         {

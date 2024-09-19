@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+/*using System.Collections.Generic;
 using System.Collections;
 using UnityEngine;
 using Fusion;
@@ -239,28 +239,6 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
-/*    private void TeleportPlayerToScreenPosition(Vector2 screenPosition)
-    {
-        if (IsPointerOverUIElement(screenPosition))
-        {
-            return;
-        }
-
-        Vector2 worldPosition = Camera.main.ScreenToWorldPoint(screenPosition);
-        RaycastHit2D[] hits = Physics2D.RaycastAll(worldPosition, Vector2.zero, Mathf.Infinity, raycastMask);
-
-        if (hits.Length > 0)
-        {
-            System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
-            RaycastHit2D hit = hits[0];
-            int hitLayerIndex = hit.collider.gameObject.layer;
-            if (hitLayerIndex == 8)
-            {
-                RPC_RequestTeleport(hit.point);
-            }
-        }
-    }
-*/
     private void HandleMouseForTeleport()
     {
         if (Input.GetMouseButtonUp(0))
@@ -273,8 +251,6 @@ public class PlayerController : NetworkBehaviour
             StartCoroutine(DetectDoubleLeftClick());
         }
     }
-
-
 
 
     private IEnumerator DetectDoubleLeftClick()
@@ -751,4 +727,114 @@ public class PlayerController : NetworkBehaviour
     }
 
 }
-#endregion
+#endregion*/
+
+
+using UnityEngine;
+using Fusion;
+using TMPro;
+using Fusion.Addons.Physics;
+
+public partial class PlayerController : NetworkBehaviour
+{
+    [SerializeField] private NetworkRigidbody2D _rb;
+    [SerializeField] private LayerMask raycastMask;
+    [SerializeField] private float moveSpeed = 2f;
+    public Sprite[] _sprites;
+
+    [Networked, OnChangedRender(nameof(OnNameChanged))] public NetworkString<_128> PlayerName { get; set; } = "";
+    [Networked] public int _playerID { get; set; }
+
+    private Animator animator;
+    public SpriteRenderer _player;
+    public AgoraManager _agoraManager;
+    public NetworkTableManager networkTableManager;
+    public NetworkedDSU _networkedDSU;
+    [SerializeField] public GameObject movementJoystick;
+
+
+    private void Awake()
+    {
+        InitializeComponents();
+    }
+
+    public override void Spawned()
+    {
+        if (Object.HasInputAuthority)
+        {
+            LoadPlayerData();
+        }
+#if !UNITY_ANDROID && !UNITY_IOS
+        Destroy(movementJoystick);
+
+#endif
+
+        raycastMask = ~0;
+        _player = GetComponent<SpriteRenderer>();
+        transform.name = PlayerName.Value;
+        GetComponentInChildren<TMP_Text>().text = PlayerName.Value;
+
+        InitializeNetworking();
+        InitializeCollision();
+        InitializeChannelManager();
+        InitializeVisuals();
+
+        _agoraManager = AgoraManager.Instance;
+        networkTableManager = NetworkTableManager.Instance;
+        _networkedDSU = NetworkedDSU.Instance;
+
+        if (Object.HasStateAuthority && _networkedDSU != null)
+        {
+            _networkedDSU.MakeSet(Object.InputAuthority);
+        }
+
+        UpdateSprite();
+
+        if (Object.HasInputAuthority)
+        {
+            _agoraManager.CreateLocalVideoView();
+        }
+    }
+
+    private void InitializeComponents()
+    {
+        _rb = GetComponent<NetworkRigidbody2D>();
+        animator = GetComponent<Animator>();
+    }
+
+    private void LoadPlayerData()
+    {
+        if (UserDataManager.Instance != null && UserDataManager.Instance.CurrentUser != null)
+        {
+            string name = UserDataManager.Instance.GetUserName();
+            RPC_RequestSetPlayerInfo(Object.InputAuthority.PlayerId, name);
+        }
+    }
+
+    public override void FixedUpdateNetwork()
+    {
+        HandleMovement();
+        HandleTeleportation();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_SetPlayerInfo(PlayerRef playerRef, int id, string nickname)
+    {
+        if (Object.InputAuthority == playerRef)
+        {
+            _playerID = id;
+            PlayerName = nickname;
+        }
+    }
+
+    public void UpdateSprite()
+    {
+        range.GetComponent<SpriteRenderer>().enabled = !IsInRoom;
+        trigger.enabled = !IsInRoom;
+    }
+    public int GetPlayerId()
+    {
+        return _playerID;
+    }
+
+}
