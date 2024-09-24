@@ -31,7 +31,7 @@ AnimatorController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Circle
+  m_Name: Animator_08
   serializedVersion: 5
   m_AnimatorParameters:
   - m_Name: Horizontal
@@ -74,7 +74,7 @@ BlendTree:
   m_Name: Blend Tree
   m_Childs:
   - serializedVersion: 2
-    m_Motion: {fileID: 7400000, guid: dc925fdfef276e84391b6a64be2c701f, type: 2}
+    m_Motion: {fileID: 7400000, guid: edf2328d486b29e469fe5c2168729697, type: 2}
     m_Threshold: -1
     m_Position: {x: 0, y: -1}
     m_TimeScale: 1
@@ -82,7 +82,7 @@ BlendTree:
     m_DirectBlendParameter: Horizontal
     m_Mirror: 0
   - serializedVersion: 2
-    m_Motion: {fileID: 7400000, guid: cc22268129f52ec44b55b158721ab3ed, type: 2}
+    m_Motion: {fileID: 7400000, guid: 3f03a8271239bfe4fa01cbe07b870bf5, type: 2}
     m_Threshold: 1
     m_Position: {x: 0, y: 1}
     m_TimeScale: 1
@@ -90,7 +90,7 @@ BlendTree:
     m_DirectBlendParameter: Horizontal
     m_Mirror: 0
   - serializedVersion: 2
-    m_Motion: {fileID: 7400000, guid: 21d291a58f5910149a7635c8c7445336, type: 2}
+    m_Motion: {fileID: 7400000, guid: 776ebb926167f4848a01a5b2111c2ab2, type: 2}
     m_Threshold: 3
     m_Position: {x: -1, y: 0}
     m_TimeScale: 1
@@ -98,7 +98,7 @@ BlendTree:
     m_DirectBlendParameter: Horizontal
     m_Mirror: 0
   - serializedVersion: 2
-    m_Motion: {fileID: 7400000, guid: ae9c7b458bfc8154ea6cc16b8bab8ad6, type: 2}
+    m_Motion: {fileID: 7400000, guid: c7ea25b1f867bbc4ebf62a1360c20260, type: 2}
     m_Threshold: 5
     m_Position: {x: 1, y: 0}
     m_TimeScale: 1
@@ -132,13 +132,13 @@ AnimatorState:
   m_SpeedParameterActive: 0
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: f05659e5840c27249a1b9d4ede467839, type: 2}
+  m_TimeParameterActive: 1
+  m_Motion: {fileID: 7400000, guid: df13f23099d0ec44aa81370dc7c207ff, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
-  m_TimeParameter: 
+  m_TimeParameter: Horizontal
 --- !u!1101 &6144068788600749805
 AnimatorStateTransition:
   m_ObjectHideFlags: 1

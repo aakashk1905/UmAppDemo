@@ -209,7 +209,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -583,6 +583,7 @@ GameObject:
   - component: {fileID: 8115464113791692850}
   - component: {fileID: 48717423425022350}
   - component: {fileID: 3446437827388387770}
+  - component: {fileID: 6915370137796578560}
   m_Layer: 0
   m_Name: Circle
   m_TagString: Player
@@ -755,6 +756,7 @@ MonoBehaviour:
   - {fileID: 837159230333937357}
   - {fileID: 1981579918034547916}
   - {fileID: 48717423425022350}
+  - {fileID: 6915370137796578560}
 --- !u!114 &837159230333937357
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -801,7 +803,7 @@ Animator:
   m_GameObject: {fileID: 6442136690671062928}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 9fbb4a1c97f2bb143a185d605e57ed15, type: 2}
+  m_Controller: {fileID: 9100000, guid: c385df02923aa764f810e12c20ffc26c, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -875,6 +877,28 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 5.8933263, y: 5.424572}
   m_EdgeRadius: 0
+--- !u!114 &6915370137796578560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6442136690671062928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83843ce004a4a2c44b01579b023f8e28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerAnimator: {fileID: 8115464113791692850}
+  characterControllers:
+  - {fileID: 9100000, guid: 29bedf418d5fe2546a85e81bd9d5d400, type: 2}
+  - {fileID: 9100000, guid: d2efe349c97d62947a3b7e41271c8669, type: 2}
+  - {fileID: 9100000, guid: d95749790f42264408550fabd7a260ec, type: 2}
+  - {fileID: 9100000, guid: c385df02923aa764f810e12c20ffc26c, type: 2}
+  - {fileID: 9100000, guid: 98d431a9244b89e4eb7affa21f974453, type: 2}
+  - {fileID: 9100000, guid: 0b0cbd2f26d0cf540a39c6bcae1a9d5e, type: 2}
+  - {fileID: 9100000, guid: 627dc63d308d10a4cbd107d16759c5c2, type: 2}
+  _selectedCharacterIndex: 0
 --- !u!1 &6473850588293708397
 GameObject:
   m_ObjectHideFlags: 0
