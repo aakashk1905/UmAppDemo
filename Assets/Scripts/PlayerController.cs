@@ -745,21 +745,31 @@ public partial class PlayerController : NetworkBehaviour
     [Networked, OnChangedRender(nameof(OnNameChanged))] public NetworkString<_128> PlayerName { get; set; } = "";
     [Networked] public int _playerID { get; set; }
 
-    private Animator animator;
+    public Animator animator;
+    public CharacterChoose choose;
     public SpriteRenderer _player;
     public AgoraManager _agoraManager;
     public NetworkTableManager networkTableManager;
     public NetworkedDSU _networkedDSU;
     [SerializeField] public GameObject movementJoystick;
+    public static PlayerController Instance { get;set; }
 
 
     private void Awake()
     {
         InitializeComponents();
+        
     }
 
     public override void Spawned()
     {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        choose = GetComponent<CharacterChoose>();
+        if (choose != null) ;
+        choose.playerController = this;
         if (Object.HasInputAuthority)
         {
             LoadPlayerData();

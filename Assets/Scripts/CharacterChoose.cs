@@ -14,8 +14,8 @@ public class SaveData
 
 public class CharacterChoose : NetworkBehaviour
 {
-    //Assign the playerAnimator to the local player
-    [SerializeField] private Animator playerAnimator;
+    public PlayerController playerController;
+    private Animator playerAnimator;
     [SerializeField] private RuntimeAnimatorController[] characterControllers;
 
     [Networked] public int selectedCharacterIndex { get; set; }
@@ -24,47 +24,28 @@ public class CharacterChoose : NetworkBehaviour
 
     public override void Spawned()
     {
-        // if (Object.HasInputAuthority)
-        // {
-        //     LoadCharacterSelection();
-        //     ShowCharacterSelectionUI();
-        // }
-        // else
-        // {
-        //     SetAnimatorController(selectedCharacterIndex);
-        // }
-
-        // Assign playerAnimator dynamically if the player has input authority
-        if (Object.HasInputAuthority)
-        {
-            playerAnimator = GetComponent<Animator>();
-            
-            if (playerAnimator == null)
-            {
-                Debug.LogError("No Animator component found on the player object.");
-            }
-
             LoadCharacterSelection();
-            ShowCharacterSelectionUI();
-        }
-        else
+           ShowCharacterSelectionUI();
+        
+    }
+
+    public override void FixedUpdateNetwork()
+    {
+       if(playerController == null)
         {
-            SetAnimatorController(selectedCharacterIndex);
+            playerController = PlayerController.Instance;
+            playerAnimator = playerController.animator;
         }
     }
 
     public void OnCharacterSelected(int characterIndex)
     {
-        if (Object.HasInputAuthority)
-        {
+       
             selectedCharacterIndex = characterIndex;
             SetAnimatorController(characterIndex);
             SaveCharacterSelection(characterIndex);
             Debug.Log("Character " + characterIndex + " selected.");
-        }
-        else{
-            Debug.LogError("Only the local player can select a character.");
-        }
+       
     }
 
     private void SetAnimatorController(int characterIndex)
@@ -147,7 +128,7 @@ public class CharacterChoose : NetworkBehaviour
         button1.onClick.AddListener(() => Debug.Log("Button 0 pressed"));
     }
 
-    private void Update()
+   /* private void Update()
     {
         if (Object.HasInputAuthority)
         {
@@ -189,5 +170,5 @@ public class CharacterChoose : NetworkBehaviour
                 OnCharacterSelected(8); // Select the third character
             }
         }
-    }
+    }*/
 }
