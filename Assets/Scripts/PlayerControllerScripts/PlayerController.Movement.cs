@@ -6,13 +6,15 @@ using TMPro;
 
 public partial class PlayerController : NetworkBehaviour
 {
-    private Vector2 _direction;
+    [SerializeField] private Vector2 _direction;
     private float lastClickTime = 0f;
     private const float DOUBLE_CLICK_TIME = 0.3f;
     private bool isTeleporting = false;
     private Vector3 _updatedPosition = Vector3.zero;
     private int clickCount = 0;
     public bool isTimeCheckAllowed = true;
+    [SerializeField] public int distance = 0;
+    [SerializeField] public int maxD = 20;
     [Networked] private Vector3 _targetPosition { get; set; }
     [Networked] private NetworkBool _isTeleporting { get; set; }
 
@@ -36,9 +38,27 @@ public partial class PlayerController : NetworkBehaviour
 
         moveDirection = moveDirection.normalized;
 
-        _rb.Rigidbody.velocity = moveDirection * moveSpeed;
+        if (moveDirection!=Vector2.zero)
+             _direction = moveDirection;
+        
+        if (distance < maxD && _direction != Vector2.zero)
+        {
+            _rb.Rigidbody.velocity = _direction * moveSpeed;
+            distance++;
+        }
+        else
+        {
+           
+            _rb.Rigidbody.velocity = Vector2.zero;
+            if (distance >= maxD)
+            {
+                distance = 0;
+                if(moveDirection == Vector2.zero)
+                    _direction = Vector2.zero;
+            }
+        }
 
-        UpdateAnimator(moveDirection);
+        UpdateAnimator(_direction);
 
         if (Object.HasInputAuthority)
         {

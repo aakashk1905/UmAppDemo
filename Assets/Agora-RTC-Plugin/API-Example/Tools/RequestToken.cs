@@ -18,7 +18,7 @@ namespace Agora_RTC_Plugin.API_Example
     {
         public static IEnumerator FetchToken(string url, string channel, long userId, Action<string> callback = null)
         {
-            using (UnityWebRequest request = UnityWebRequest.Get(string.Format("{0}?channel={1}&userId={2}", url, channel, userId)))
+            using (UnityWebRequest request = UnityWebRequest.Get(string.Format("{0}?channel={1}&uid={2}", url, channel, userId)))
             {
                 
                 yield return request.SendWebRequest();
