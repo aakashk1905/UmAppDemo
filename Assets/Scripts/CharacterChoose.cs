@@ -25,7 +25,7 @@ public class CharacterChoose : NetworkBehaviour
     public override void Spawned()
     {
             LoadCharacterSelection();
-           ShowCharacterSelectionUI();
+           //ShowCharacterSelectionUI();
         
     }
 
@@ -35,6 +35,7 @@ public class CharacterChoose : NetworkBehaviour
         {
             playerController = PlayerController.Instance;
             playerAnimator = playerController.animator;
+            SetAnimatorController(selectedCharacterIndex);
         }
     }
 
@@ -50,13 +51,16 @@ public class CharacterChoose : NetworkBehaviour
 
     private void SetAnimatorController(int characterIndex)
     {
-        if (characterIndex >= 0 && characterIndex < characterControllers.Length)
+        if (playerAnimator!=null)
         {
-            playerAnimator.runtimeAnimatorController = characterControllers[characterIndex];
-        }
-        else
-        {
-            Debug.LogError("Invalid character index selected.");
+            if (characterIndex >= 0 && characterIndex < characterControllers.Length)
+            {
+                playerAnimator.runtimeAnimatorController = characterControllers[characterIndex];
+            }
+            else
+            {
+                Debug.LogError("Invalid character index selected.");
+            }
         }
     }
 
@@ -106,7 +110,7 @@ public class CharacterChoose : NetworkBehaviour
         }
     }
 
-    private void ShowCharacterSelectionUI()
+   /* private void ShowCharacterSelectionUI()
     {
         Button button1 = GameObject.Find("UI Canvas/CharacterSelectPanel/CharacterButton1").GetComponent<Button>();
         Button button2 = GameObject.Find("UI Canvas/CharacterSelectPanel/CharacterButton2").GetComponent<Button>();
@@ -123,52 +127,6 @@ public class CharacterChoose : NetworkBehaviour
         button5.onClick.AddListener(() => OnCharacterSelected(4));
         button6.onClick.AddListener(() => OnCharacterSelected(5));
         button7.onClick.AddListener(() => OnCharacterSelected(6));
-
-        //Show a Debug if button0 is pressed
-        button1.onClick.AddListener(() => Debug.Log("Button 0 pressed"));
-    }
-
-   /* private void Update()
-    {
-        if (Object.HasInputAuthority)
-        {
-            // Debug testing without UI using number keys to select characters
-            if (Input.GetKeyDown(KeyCode.Alpha1))
-            {
-                OnCharacterSelected(0); // Select the first character
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha2))
-            {
-                OnCharacterSelected(1); // Select the second character
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha3))
-            {
-                OnCharacterSelected(2); // Select the third character
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha4))
-            {
-                OnCharacterSelected(3); // Select the second character
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha5))
-            {
-                OnCharacterSelected(4); // Select the third character
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha6))
-            {
-                OnCharacterSelected(5); // Select the second character
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha7))
-            {
-                OnCharacterSelected(6); // Select the third character
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha8))
-            {
-                OnCharacterSelected(7); // Select the second character
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha9))
-            {
-                OnCharacterSelected(8); // Select the third character
-            }
-        }
     }*/
+
 }

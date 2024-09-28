@@ -2,6 +2,8 @@ using UnityEngine;
 using Fusion;
 using TMPro;
 using Fusion.Addons.Physics;
+using System.Collections.Generic;
+using System.Collections;
 
 public partial class PlayerController : NetworkBehaviour
 {
@@ -12,7 +14,7 @@ public partial class PlayerController : NetworkBehaviour
 
     [Networked, OnChangedRender(nameof(OnNameChanged))] public NetworkString<_128> PlayerName { get; set; } = "";
     [Networked] public int _playerID { get; set; }
-
+    public PlayerListManager playerListManager;
     public Animator animator;
     public CharacterChoose choose;
     public SpriteRenderer _player;
@@ -20,8 +22,8 @@ public partial class PlayerController : NetworkBehaviour
     public NetworkTableManager networkTableManager;
     public NetworkedDSU _networkedDSU;
     [SerializeField] public GameObject movementJoystick;
+    public GameObject NameListCanvas;
     public static PlayerController Instance { get;set; }
-
 
     private void Awake()
     {
@@ -29,6 +31,12 @@ public partial class PlayerController : NetworkBehaviour
         
     }
 
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        PlayerListManager.Instance.RemovePlayerInfo(_playerID.ToString());
+        base.Despawned(runner, hasState);
+
+    }
     public override void Spawned()
     {
         if (Instance == null)
@@ -36,12 +44,11 @@ public partial class PlayerController : NetworkBehaviour
             Instance = this;
         }
         moveSpeed = 1.2f;
-        choose = GetComponent<CharacterChoose>();
-        if (choose != null) ;
-        choose.playerController = this;
+
         if (Object.HasInputAuthority)
         {
             LoadPlayerData();
+            
         }
 #if !UNITY_ANDROID && !UNITY_IOS
         Destroy(movementJoystick);
@@ -61,19 +68,68 @@ public partial class PlayerController : NetworkBehaviour
         _agoraManager = AgoraManager.Instance;
         networkTableManager = NetworkTableManager.Instance;
         _networkedDSU = NetworkedDSU.Instance;
+        playerListManager = PlayerListManager.Instance;
 
         if (Object.HasStateAuthority && _networkedDSU != null)
         {
             _networkedDSU.MakeSet(Object.InputAuthority);
         }
-
+        NameListCanvas = GameObject.FindGameObjectWithTag("PlayerNameList");
         UpdateSprite();
-
         if (Object.HasInputAuthority)
         {
             _agoraManager.CreateLocalVideoView();
         }
+        StartCoroutine(SetList());
     }
+
+    private IEnumerator WaitForPlayerListManager()
+    {
+        while (playerListManager == null)
+        {
+            yield return null;
+        }
+
+         PlayerListManager.Instance.AddPlayerInfo(PlayerName.Value, _playerID.ToString());
+        
+    }
+
+        private IEnumerator SetList()
+    {
+        while (playerListManager == null)
+        {
+            yield return null;
+        }
+
+        if (Object.HasInputAuthority)
+        {
+            PlayerListManager.OnPlayerListUpdated += UpdateNameList;
+        }
+    }
+
+    private void UpdateNameList()
+    {
+        if (!Object.HasInputAuthority) return;
+
+        foreach (Transform child in NameListCanvas.transform)
+        {
+            Destroy(child.gameObject);
+        }
+
+        if (playerListManager != null)
+        {
+            
+            foreach (var playerInfo in playerListManager.playerInfoList)
+            {
+                Debug.LogError(playerListManager.playerInfoList.Count);
+                Debug.LogError(playerInfo.name.Value);
+                RenderName(playerInfo.name.Value);
+            }
+        }
+    }
+
+
+
 
     private void InitializeComponents()
     {

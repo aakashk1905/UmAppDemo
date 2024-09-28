@@ -10,6 +10,17 @@ public partial class PlayerController : NetworkBehaviour
     {
     }
 
+    private void RenderName(string name)
+    {
+        GameObject textObject = new GameObject("TextMeshPro");
+        textObject.transform.SetParent(NameListCanvas.transform, false);
+        TextMeshProUGUI textMeshPro = textObject.AddComponent<TextMeshProUGUI>();
+        textMeshPro.text = name;
+        textMeshPro.fontSize = 18;
+        textMeshPro.alignment = TextAlignmentOptions.Center;
+        textMeshPro.enableAutoSizing = true;
+    }
+
     private void CreateTargetIndicator()
     {
         targetIndicator = new GameObject("TeleportTargetIndicator");
@@ -33,8 +44,12 @@ public partial class PlayerController : NetworkBehaviour
             {
                 Debug.LogError("TMP_Text component not found on player object.");
             }
+            
+                StartCoroutine(WaitForPlayerListManager());
+            
         }
     }
+   
 
     [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
     private void Rpc_UpdatePlayerSpriteTeleport(bool teleporting)
