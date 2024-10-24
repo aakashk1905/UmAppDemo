@@ -89,8 +89,8 @@ public partial class PlayerController : NetworkBehaviour
         {
             yield return null;
         }
-
-         PlayerListManager.Instance.AddPlayerInfo(PlayerName.Value, _playerID.ToString());
+        if(Object.HasInputAuthority)
+         PlayerListManager.Instance.AddPlayerInfo(PlayerName.Value, UserDataManager.Instance.GetUserEmail().Split("@")[0].ToString());
         
     }
 
@@ -121,9 +121,7 @@ public partial class PlayerController : NetworkBehaviour
             
             foreach (var playerInfo in playerListManager.playerInfoList)
             {
-                Debug.LogError(playerListManager.playerInfoList.Count);
-                Debug.LogError(playerInfo.name.Value);
-                RenderName(playerInfo.name.Value);
+                RenderName(playerInfo.name.Value,playerInfo.id.Value);
             }
         }
     }

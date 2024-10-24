@@ -32,9 +32,19 @@ public class PlayerListManager : NetworkBehaviour
         }
     }
 
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_RequestAddPlayerInfo(string name, string id)
+    {
+        if (Runner.IsServer) 
+        {
+            RPC_AddPlayerInfo(name, id); 
+        }
+        
+    }
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_AddPlayerInfo(string name, string id)
     {
+        Debug.LogError("dobara prayas krre" +  name + " " + id);
         foreach (var playerInfo in playerInfoList)
         {
             if (playerInfo.id == id)
@@ -71,6 +81,10 @@ public class PlayerListManager : NetworkBehaviour
         if (Runner.IsServer)
         {
             RPC_AddPlayerInfo(name, id);
+        }
+        else
+        {
+            RPC_RequestAddPlayerInfo(name, id);
         }
         
     }

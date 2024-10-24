@@ -40,7 +40,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
         StartGameResult result = await networkRunner.StartGame(new StartGameArgs()
         {
             GameMode = mode,
-            SessionName = "TestScene",
+            SessionName = "TestScene1",
             Scene = scene,
             SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
         });
