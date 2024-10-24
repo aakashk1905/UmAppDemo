@@ -1,6 +1,7 @@
 using UnityEngine;
 using Fusion;
 using TMPro;
+using UnityEngine.UI;
 
 public partial class PlayerController : NetworkBehaviour
 {
@@ -10,7 +11,7 @@ public partial class PlayerController : NetworkBehaviour
     {
     }
 
-    private void RenderName(string name)
+    private void RenderName(string name, string email)
     {
         GameObject textObject = new GameObject("TextMeshPro");
         textObject.transform.SetParent(NameListCanvas.transform, false);
@@ -19,6 +20,20 @@ public partial class PlayerController : NetworkBehaviour
         textMeshPro.fontSize = 18;
         textMeshPro.alignment = TextAlignmentOptions.Center;
         textMeshPro.enableAutoSizing = true;
+
+        RectTransform rectTransform = textObject.GetComponent<RectTransform>();
+        rectTransform.sizeDelta = new Vector2(200, 50);
+
+        Button button = textObject.AddComponent<Button>();
+        button.onClick.AddListener(() => OnTextClicked(email));
+    }
+
+    public void OnTextClicked(string s)
+    {
+        if (s != UserDataManager.Instance.GetUserEmail().Split("@")[0])
+        {
+            Debug.LogError(s);
+        }
     }
 
     private void CreateTargetIndicator()

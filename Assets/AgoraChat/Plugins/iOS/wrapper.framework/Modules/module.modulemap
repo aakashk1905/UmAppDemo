@@ -1,0 +1,6 @@
+framework module wrapper {
+  umbrella header "wrapper.h"
+
+  export *
+  module * { export * }
+}
