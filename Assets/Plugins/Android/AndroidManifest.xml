@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+	<application>
+		<activity android:name="com.unity3d.player.UnityPlayerActivity"
+                  android:theme="@style/UnityThemeSelector">
+
+			<!-- Main activity declaration to launch the app -->
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+
+			<!-- Deep link intent filter -->
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+
+				<!-- Define your custom scheme and host -->
+				<data android:scheme="upskillmafia" android:host="open" />
+			</intent-filter>
+
+		</activity>
+
+		<!-- Unity metadata -->
+		<meta-data android:name="unityplayer.UnityActivity" android:value="true" />
+	</application>
+
+</manifest>

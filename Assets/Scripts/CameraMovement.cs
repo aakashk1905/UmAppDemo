@@ -8,7 +8,7 @@ public class CameraMovement : MonoBehaviour
     private static readonly float PanSpeed = 10f;
 
     private static readonly float[] BoundsX = new float[] { -3f, 3f };
-    private static readonly float[] BoundsY = new float[] { -3f, 3f }; // Added bounds for y-axis
+    private static readonly float[] BoundsY = new float[] { -3f, 3f }; 
     private static readonly float[] BoundsZ = new float[] { -10f, 0f };
 
     private Camera cam;
@@ -42,7 +42,13 @@ public class CameraMovement : MonoBehaviour
     {
         if (Input.touchCount == 1)
         {
+           
             Touch touch = Input.GetTouch(0);
+            if (touch.tapCount > 1)
+            {
+                return;
+            }
+
             if (touch.phase == TouchPhase.Began)
             {
                 _cameraCanMove = false;

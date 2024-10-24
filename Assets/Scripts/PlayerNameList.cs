@@ -1,15 +1,54 @@
+using Fusion;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class PlayerNameList : MonoBehaviour
 {
     public Animator _animPlayerNameList;
-    //buttons
+    [SerializeField] private GameObject _overlay;
     [SerializeField] private GameObject _openBtn;
-  
-    public void openPlayerListNamePanel()
+    [SerializeField] private GameObject _playerDetOut;
+    [SerializeField] private GameObject _playerCompOut;
+    [SerializeField] private GameObject _locatinbtn;
+    [SerializeField] private GameObject _apps;
+    [SerializeField] private GameObject _RoomPanel;
+    [SerializeField] private GameObject _SettingsPanel;
+    private AgoraManager agora;
+
+
+    void Start()
+    {
+        _SettingsPanel.SetActive(false);
+        _RoomPanel.SetActive(false);
+        _overlay.SetActive(false);
+        _playerCompOut.SetActive(false);
+        _playerDetOut.SetActive(false); 
+        _overlay.GetComponent<Button>().onClick.AddListener(closePlayerListNamePanel);
+        agora = AgoraManager.Instance;
+    }
+    public void Logout()
+    {
+    
+        UserDataManager.Instance.LogOut();
+
+        if (NetworkRunner.Instances.Count > 0)
+        {
+            NetworkRunner runner = NetworkRunner.Instances[0];
+            if (runner != null && runner.IsRunning)
+            {
+                runner.Shutdown();
+            }
+        }
+        agora.RtcEngine.LeaveChannel(); ;
+
+        SceneManager.LoadScene("Login");
+
+    }
+    public void openPlayerListNamePanel()   
     {
        
             transform.Translate(Vector3.right * 3);
@@ -19,8 +58,11 @@ public class PlayerNameList : MonoBehaviour
             {
                 block.MoveRight();
             }
-        _openBtn.SetActive(false);
-        
+        _openBtn.SetActive(false); 
+        _overlay.SetActive(true);
+        _playerDetOut.SetActive(false);
+        _playerCompOut.SetActive(false);
+       
     }
     public void closePlayerListNamePanel()
     {
@@ -32,5 +74,28 @@ public class PlayerNameList : MonoBehaviour
             block.MoveLeft();
         }
         _openBtn.SetActive(true);
+        _overlay.SetActive(false);
+        _playerDetOut.SetActive(true);
+        _playerCompOut.SetActive(true);
     }
+    public void ToggleRoomPanel()
+    {
+        if (_RoomPanel.activeSelf)
+        {
+            _RoomPanel.SetActive(false);
+        }
+        else
+        {
+            _RoomPanel.SetActive(true);
+        }
+    }
+    public void OpenSettings()
+    {
+        _SettingsPanel.SetActive(true);
+    }
+    public void CloseSettings()
+    {
+        _SettingsPanel.SetActive(false);
+    }
+    
 }

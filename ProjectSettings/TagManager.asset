@@ -5,21 +5,28 @@ TagManager:
   serializedVersion: 2
   tags:
   - VideoSurface
+  - Plane
+  - Room
+  - Locked
+  - Range
+  - VideoSurfacemine
+  - Browser
+  - PlayerNameList
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - UserVideos
   - Water
   - UI
   - Aura
   - Player
   - Ground
-  - 
-  - 
-  - 
-  - 
-  - 
+  - boundary
+  - Room
+  - VideoScreen
+  - PreventTeleport
+  - CharacterSelectPanel
   - 
   - 
   - 

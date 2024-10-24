@@ -7,9 +7,17 @@ using Fusion.Sockets;
 using Unity.Mathematics;
 using TMPro;
 using UnityEngine.SceneManagement;
+using static Unity.Collections.Unicode;
 
 public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
+    public Canvas loader;
+    private void Start()
+    {
+        loader.enabled = true;
+        Host();
+
+    }
     private NetworkRunner networkRunner;
     public void Host()
     {
@@ -20,7 +28,6 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
         networkRunner = gameObject.AddComponent<NetworkRunner>();
         networkRunner.ProvideInput = true;
-
         //Scene info
         var scene = SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex);
         var sceneInfo = new NetworkSceneInfo();
@@ -33,7 +40,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
         StartGameResult result = await networkRunner.StartGame(new StartGameArgs()
         {
             GameMode = mode,
-            SessionName = "TestScene",
+            SessionName = "TestScene1",
             Scene = scene,
             SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
         });
@@ -41,6 +48,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
         if (result.Ok)
         {
             Debug.Log("Game started successfully.");
+            loader.enabled = false;
         }
         else
         {
@@ -52,6 +60,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
     public void OnConnectedToServer(NetworkRunner runner)
     {
         Debug.Log("Connected to server.");
+       
     }
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)

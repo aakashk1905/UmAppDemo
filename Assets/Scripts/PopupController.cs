@@ -1,30 +1,32 @@
 using UnityEngine;
-
 public class PopupController : MonoBehaviour
 {
     public GameObject loginPopup;
-    public GameObject signUpPopup;
+    public GameObject registerPopup;
+    public GameObject SuccesPanel;
 
-    void update()
+    void Start()
     {
-        loginPopup.SetActive(false);
-        signUpPopup.SetActive(false);
+        loginPopup.SetActive(true);
+        registerPopup.SetActive(false);
+        SuccesPanel.SetActive(false);
     }
     public void ShowLoginPopup()
     {
         loginPopup.SetActive(true);
-        signUpPopup.SetActive(false);
+        registerPopup.SetActive(false);
+        SuccesPanel.SetActive(false);
     }
 
-    public void ShowSignUpPopup()
+    public void ShowRegisterPopup()
     {
-        signUpPopup.SetActive(true);
+        registerPopup.SetActive(true);
         loginPopup.SetActive(false);
+        SuccesPanel.SetActive(false);
     }
-
-    public void ClosePopups()
+    public void ShowSuccessPanel()
     {
+        SuccesPanel.SetActive(true);
         loginPopup.SetActive(false);
-        signUpPopup.SetActive(false);
     }
 }

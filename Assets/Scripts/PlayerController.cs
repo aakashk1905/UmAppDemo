@@ -1,170 +1,173 @@
-using System.Collections.Generic;
 using UnityEngine;
 using Fusion;
-using Fusion.Addons.Physics;
 using TMPro;
-using Unity.VisualScripting;
-using UnityEngine.UIElements;
+using Fusion.Addons.Physics;
+using System.Collections.Generic;
+using System.Collections;
 
-public class PlayerController : NetworkBehaviour
+public partial class PlayerController : NetworkBehaviour
 {
-    [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private NetworkRigidbody2D _rb;
-    [SerializeField] public Sprite[] _sprites;
-    public NetworkString<_16> PlayerName { get; set; }
+    [SerializeField] private LayerMask raycastMask;
+    [SerializeField] private float moveSpeed = 1.2f;
+    public Sprite[] _sprites;
 
-    [Networked]
-    private int _playerID { get; set; }
-
-    public string _channelName;
-    public string _token;
+    [Networked, OnChangedRender(nameof(OnNameChanged))] public NetworkString<_128> PlayerName { get; set; } = "";
+    [Networked] public int _playerID { get; set; }
+    public PlayerListManager playerListManager;
+    public Animator animator;
+    public CharacterChoose choose;
     public SpriteRenderer _player;
-    private Vector2 _direction;
-    public List<PlayerController> neighbours = new List<PlayerController>();
-    private AgoraManager _agoraManager;
-    public Dictionary<string, string> tokens = new Dictionary<string, string>();
+    public AgoraManager _agoraManager;
+    public NetworkTableManager networkTableManager;
+    public NetworkedDSU _networkedDSU;
+    [SerializeField] public GameObject movementJoystick;
+    public GameObject NameListCanvas;
+    public static PlayerController Instance { get;set; }
 
+    private void Awake()
+    {
+        InitializeComponents();
+        
+    }
+
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        PlayerListManager.Instance.RemovePlayerInfo(_playerID.ToString());
+        base.Despawned(runner, hasState);
+
+    }
     public override void Spawned()
     {
-       
-        _player = GetComponent<SpriteRenderer>();
-       
-        if (Object.HasInputAuthority)
-        { 
-            if (_playerID == 0)
-            {
-                int id = Random.Range(0, 1000);
-                RPC_SetNickname(id);
-
-            }
-           
+        if (Instance == null)
+        {
+            Instance = this;
         }
-        transform.name = "Player" + _playerID;
-        GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
+        moveSpeed = 1.2f;
+
+        if (Object.HasInputAuthority)
+        {
+            LoadPlayerData();
+            
+        }
+#if !UNITY_ANDROID && !UNITY_IOS
+        Destroy(movementJoystick);
+
+#endif
+
+        raycastMask = ~0;
+        _player = GetComponent<SpriteRenderer>();
+        transform.name = PlayerName.Value;
+        GetComponentInChildren<TMP_Text>().text = PlayerName.Value;
+
+        InitializeNetworking();
+        InitializeCollision();
+        InitializeChannelManager();
+        InitializeVisuals();
+
         _agoraManager = AgoraManager.Instance;
+        networkTableManager = NetworkTableManager.Instance;
+        _networkedDSU = NetworkedDSU.Instance;
+        playerListManager = PlayerListManager.Instance;
+
+        if (Object.HasStateAuthority && _networkedDSU != null)
+        {
+            _networkedDSU.MakeSet(Object.InputAuthority);
+        }
+        NameListCanvas = GameObject.FindGameObjectWithTag("PlayerNameList");
+        UpdateSprite();
+        if (Object.HasInputAuthority)
+        {
+            _agoraManager.CreateLocalVideoView();
+        }
+        StartCoroutine(SetList());
+    }
+
+    private IEnumerator WaitForPlayerListManager()
+    {
+        while (playerListManager == null)
+        {
+            yield return null;
+        }
+        if(Object.HasInputAuthority)
+         PlayerListManager.Instance.AddPlayerInfo(PlayerName.Value, UserDataManager.Instance.GetUserEmail().Split("@")[0].ToString());
+        
+    }
+
+        private IEnumerator SetList()
+    {
+        while (playerListManager == null)
+        {
+            yield return null;
+        }
+
+        if (Object.HasInputAuthority)
+        {
+            PlayerListManager.OnPlayerListUpdated += UpdateNameList;
+        }
+    }
+
+    private void UpdateNameList()
+    {
+        if (!Object.HasInputAuthority) return;
+
+        foreach (Transform child in NameListCanvas.transform)
+        {
+            Destroy(child.gameObject);
+        }
+
+        if (playerListManager != null)
+        {
+            
+            foreach (var playerInfo in playerListManager.playerInfoList)
+            {
+                RenderName(playerInfo.name.Value,playerInfo.id.Value);
+            }
+        }
+    }
+
+
+
+
+    private void InitializeComponents()
+    {
         _rb = GetComponent<NetworkRigidbody2D>();
+        animator = GetComponent<Animator>();
+    }
+
+    private void LoadPlayerData()
+    {
+        if (UserDataManager.Instance != null && UserDataManager.Instance.CurrentUser != null)
+        {
+            string name = UserDataManager.Instance.GetUserName();
+            RPC_RequestSetPlayerInfo(Object.InputAuthority.PlayerId, name);
+        }
     }
 
     public override void FixedUpdateNetwork()
     {
-        if (GetInput(out NetworkInputData input))
-        {
-            _rb.Rigidbody.velocity = input.directions * moveSpeed;
-        }
-        if(_playerID != 0)
-        {
-            transform.name = "Player" + _playerID;
-            GetComponentInChildren<TMP_Text>().text = "Player" + _playerID;
-        }
+        HandleMovement();
+        HandleTeleportation();
     }
-    #region Collison Management
-    private void OnTriggerEnter2D(Collider2D collision)
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_SetPlayerInfo(PlayerRef playerRef, int id, string nickname)
     {
-        Debug.Log("Collision entered");
-        if (collision.gameObject.tag == "Player" && !neighbours.Contains(collision.gameObject.GetComponent<PlayerController>()))
+        if (Object.InputAuthority == playerRef)
         {
-
-            PlayerController otherPlayer = collision.gameObject.GetComponent<PlayerController>();
-            neighbours.Add(otherPlayer);
-            Debug.Log("Neighbour added" + neighbours.Count);
-            JoinChannelWithPlayer(otherPlayer);
-            _player.sprite = _sprites[1];
+            _playerID = id;
+            PlayerName = nickname;
         }
     }
 
-    private void OnTriggerExit2D(Collider2D collision)
+    public void UpdateSprite()
     {
-        if (collision.gameObject.tag == "Player" && neighbours.Contains(collision.gameObject.GetComponent<PlayerController>()))
-        {
-            HandleOnTriggerExit(collision.gameObject.GetComponent<PlayerController>());
-        }
-
+        range.GetComponent<SpriteRenderer>().enabled = !IsInRoom;
+        trigger.enabled = !IsInRoom;
     }
-    private void JoinChannelWithPlayer(PlayerController otherPlayer)
+    public int GetPlayerId()
     {
-        _agoraManager.JoinChannel(this, otherPlayer);
+        return _playerID;
     }
 
-    public void HandleOnTriggerExit(PlayerController otherPlayer)
-    {
-
-        if (neighbours.Contains(otherPlayer))
-            neighbours.Remove(otherPlayer);
-        if (otherPlayer.neighbours.Contains(this))
-            otherPlayer.neighbours.Remove(this);
-
-        if (neighbours.Count <= 0)
-        {
-            string channel = GetChannelName();
-            _agoraManager.LeaveChannel(this);
-            _agoraManager.Rpc_UpdateNetworkTable("remove", channel, this);
-            _player.sprite = _sprites[0];
-
-            if (otherPlayer.neighbours.Count == 0)
-            {
-                _agoraManager.LeaveChannel(otherPlayer);
-                _agoraManager.Rpc_UpdateNetworkTable("remove", channel, otherPlayer);
-                otherPlayer._player.sprite = _sprites[0];
-            }
-        }
-        else
-        {
-            List<PlayerController> connectedPlayers = new List<PlayerController>(_agoraManager.networkTable[_channelName]);
-            HashSet<PlayerController> checkedPlayers = new HashSet<PlayerController>();
-
-            foreach (PlayerController player in connectedPlayers)
-            {
-                if (!checkedPlayers.Contains(player) && player.neighbours.Count >= 1)
-                {
-                    string newChannelName = _agoraManager.GenerateChannelName();
-                    AddMeAndNeighbours(player, newChannelName, new List<PlayerController>(), checkedPlayers);
-                }
-                else
-                {
-                    _agoraManager.LeaveChannel(player);
-                    _agoraManager.Rpc_UpdateNetworkTable("remove", player.GetChannelName(), player);
-                    player._player.sprite = _sprites[0];
-                }
-            }
-        }
-
-    }
-
-    private void AddMeAndNeighbours(PlayerController player, string channelName, List<PlayerController> listOfNewPlayers, HashSet<PlayerController> checkedPlayers)
-    {
-        _agoraManager.LeaveChannel(player);
-        _agoraManager.AddPlayerToChannel(channelName, player);
-        checkedPlayers.Add(player);
-        listOfNewPlayers.Add(player);
-        foreach (PlayerController neighbour in player.neighbours)
-        {
-            if (!checkedPlayers.Contains(neighbour))
-            {
-                AddMeAndNeighbours(neighbour, channelName, listOfNewPlayers, checkedPlayers);
-            }
-        }
-    }
-    #endregion
-    public string GetChannelName() { return _channelName; }
-    public void SetChannelName(string name) { _channelName = name; }
-
-    public string GetToken() { return _token; }
-    public void SetToken(string newToken)
-    {
-        if (!string.IsNullOrEmpty(newToken))
-        {
-            Debug.Log("Setting Token for " + this.name);
-        }
-        _token = newToken;
-    }
-
-    public int GetPlayerId() { return _playerID; }
-    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-    public void RPC_SetNickname(int nick)
-    {
-        _playerID = nick;
-       
-    }
-    public void TriggerJoin(PlayerController _playerController) => _agoraManager.JoinChannel(this, _playerController);
 }
-
