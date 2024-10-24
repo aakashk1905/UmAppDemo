@@ -10,6 +10,8 @@ using WebSocketSharp;
 using static Unity.Collections.Unicode;
 using UnityEngine.SocialPlatforms.Impl;
 using UnityEngine.Video;
+using TMPro;
+using UnityEditor.Rendering.LookDev;
 
 public class AgoraManager : MonoBehaviour
 {
@@ -39,6 +41,8 @@ public class AgoraManager : MonoBehaviour
     [SerializeField] private Sprite micOffSprite;
     [SerializeField] private Button muteButton;
 
+    [SerializeField] CarouselVideo carouselVideo;
+
     private void Awake()
     {
         if (Instance == null)
@@ -59,6 +63,8 @@ public class AgoraManager : MonoBehaviour
         Bridges = new Dictionary<string, int>();
         InitRtcEngine();
         SetBasicConfiguration();
+
+        carouselVideo.CreateNewPanel();
     }
 
     #region Configuration Functions
@@ -140,7 +146,7 @@ public class AgoraManager : MonoBehaviour
        
         RtcEngine.StartPreview();
 
-        VideoSurface videoSurface = MakeImageSurface(0.ToString(),"mine");
+        VideoSurface videoSurface = MakeImageSurface(0.ToString(),"mine");       
         if (videoSurface != null)
         {
             videoSurface.SetForUser(0, "");
@@ -391,6 +397,7 @@ public class AgoraManager : MonoBehaviour
 
     private VideoSurface MakeImageSurface(string goName,string mine="")
     {
+        carouselVideo.ActivateCarousel();
         GameObject gameObject = new GameObject();
 
         if (gameObject == null)
@@ -405,7 +412,8 @@ public class AgoraManager : MonoBehaviour
         
         if (canvas != null)
         {
-            gameObject.transform.SetParent(canvas.transform);
+            carouselVideo.currentPanel();
+            gameObject.transform.SetParent(carouselVideo.CurrentPanel.transform);
         }
         else
         {
@@ -415,6 +423,10 @@ public class AgoraManager : MonoBehaviour
         gameObject.transform.Rotate(0f, 0.0f, 180.0f);
         gameObject.transform.localPosition = Vector3.zero;
         gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
+
+        // Add a click event listener to toggle fullscreen
+        Button btn = gameObject.AddComponent<Button>(); // Add a Button component for click detection
+        btn.onClick.AddListener(() => carouselVideo.ToggleFullscreen(gameObject));
 
         VideoSurface videoSurface = gameObject.AddComponent<VideoSurface>();
         return videoSurface;
