@@ -17,8 +17,10 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
     private bool isJoined = false;
     private string tokenBase = "https://agoraapi.vercel.app/chattoken";
     SDKClient agoraChatClient;
+    private string currentRecipient = "";
+    public string recipient = "";
 
-    
+
     public void joinLeave()
     {
         if (isJoined)
@@ -51,7 +53,7 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
         }
     }
 
-    public void sendMessage()
+    /*public void sendMessage()
     {
         string recipient = GameObject.Find("userName").GetComponent<TMP_InputField>().text;
         string Msg = GameObject.Find("message").GetComponent<TMP_InputField>().text;
@@ -72,7 +74,74 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
             {
                 Debug.LogError($"Send message failed, code: {code}, desc: {desc}");
             }));
+    }*/
+
+
+    public void sendMessage()
+    {
+        
+        string Msg = GameObject.Find("message").GetComponent<TMP_InputField>().text;
+
+        if (string.IsNullOrEmpty(Msg) || string.IsNullOrEmpty(recipient))
+        {
+            Debug.LogError("You did not type your message");
+            return;
+        }
+
+        if (recipient != currentRecipient)
+        {
+            currentRecipient = recipient;
+            LoadMessageHistory(currentRecipient); 
+        }
+
+        Message msg = Message.CreateTextSendMessage(recipient, Msg);
+        displayMessage(Msg, true);
+        agoraChatClient.ChatManager.SendMessage(ref msg, new CallBack(
+            onSuccess: () =>
+            {
+                Debug.LogError($"Send message succeed");
+                GameObject.Find("message").GetComponent<TMP_InputField>().text = "";
+            },
+            onError: (code, desc) =>
+            {
+                Debug.LogError($"Send message failed, code: {code}, desc: {desc}");
+            }));
     }
+
+    public void LoadMessageHistory(string recipient)
+    {
+        messageList.text = ""; // Clear current chat display
+
+        // Get or create a conversation with the specific recipient
+        var conversation = agoraChatClient.ChatManager.GetConversation(recipient, ConversationType.Chat);
+
+        if (conversation != null)
+        {
+            // Load the last 50 messages with a callback to handle the result
+            conversation.LoadMessages(null,count: 50, MessageSearchDirection.UP,new ValueCallBack<List<Message>>(
+                onSuccess: (List<Message> historyMessages) =>
+                {
+                    foreach (var msg in historyMessages)
+                    {
+                        if (msg.Body.Type == MessageBodyType.TXT)
+                        {
+                            TextBody txtBody = msg.Body as TextBody;
+                            displayMessage($"{msg.From}: {txtBody.Text}", msg.From == userId);
+                        }
+                    }
+                    Debug.Log("Loaded message history successfully.");
+                },
+                onError: (code, desc) =>
+                {
+                    Debug.LogError($"Failed to load message history, code: {code}, desc: {desc}");
+                }));
+        }
+        else
+        {
+            Debug.LogError("No conversation found with the specified recipient.");
+        }
+    }
+
 
     public void displayMessage(string messageText, bool isSentMessage)
     {
@@ -102,8 +171,10 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
     }
     private void Update()
     {
-        if (userId == "" && UserDataManager.Instance.GetUserEmail() != null)
+       
+        if (userId == "" && UserDataManager.Instance!=null && UserDataManager.Instance.GetUserEmail() != null)
         {
+            Debug.LogError(UserDataManager.Instance.GetUserEmail());
             userId = UserDataManager.Instance.GetUserEmail().Split("@")[0];
             joinLeave();
             //StartCoroutine(FetchAndJoinChannel());
@@ -141,13 +212,12 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
 
     public void OnMessagesReceived(List<Message> messages)
     {
-        foreach (Message msg in messages) 
+        foreach (Message msg in messages)
         {
-            if (msg.Body.Type == MessageBodyType.TXT)
+            if (msg.Body.Type == MessageBodyType.TXT && msg.From == currentRecipient)
             {
                 TextBody txtBody = msg.Body as TextBody;
-                string Msg = msg.From + ":" + txtBody.Text;
-                displayMessage(Msg, false);
+                displayMessage($"{msg.From}: {txtBody.Text}", false);
             }
         }
     }

@@ -7,11 +7,11 @@ using System.Collections;
 using Agora_RTC_Plugin.API_Example;
 using UnityEngine.UI;
 using WebSocketSharp;
-using static Unity.Collections.Unicode;
+/*using static Unity.Collections.Unicode;
 using UnityEngine.SocialPlatforms.Impl;
 using UnityEngine.Video;
 using TMPro;
-using UnityEditor.Rendering.LookDev;
+using UnityEditor.Rendering.LookDev;*/
 
 public class AgoraManager : MonoBehaviour
 {
@@ -119,10 +119,12 @@ public class AgoraManager : MonoBehaviour
         if (!isVideoEnabled)
         {
             RtcEngine.StopPreview();
+            Log.Info("Video is off");
         }
         else
         {
             RtcEngine.StartPreview();
+            Log.Info("Video is on");
         }
         //UpdateButtonTexts();
     }
