@@ -13,19 +13,60 @@ public partial class PlayerController : NetworkBehaviour
 
     private void RenderName(string name, string email)
     {
-        GameObject textObject = new GameObject("TextMeshPro");
-        textObject.transform.SetParent(NameListCanvas.transform, false);
-        TextMeshProUGUI textMeshPro = textObject.AddComponent<TextMeshProUGUI>();
-        textMeshPro.text = name;
-        textMeshPro.fontSize = 18;
-        textMeshPro.alignment = TextAlignmentOptions.Center;
-        textMeshPro.enableAutoSizing = true;
+        //GameObject textObject = new GameObject("TextMeshPro");
+        //textObject.transform.SetParent(NameListCanvas.transform, false);
+        //TextMeshProUGUI textMeshPro = textObject.AddComponent<TextMeshProUGUI>();
+        //textMeshPro.text = name;
+        //textMeshPro.fontSize = 18;
+        //textMeshPro.alignment = TextAlignmentOptions.Center;
+        //textMeshPro.enableAutoSizing = true;
 
-        RectTransform rectTransform = textObject.GetComponent<RectTransform>();
-        rectTransform.sizeDelta = new Vector2(200, 50);
+        //RectTransform rectTransform = textObject.GetComponent<RectTransform>();
+        //rectTransform.sizeDelta = new Vector2(200, 50);
 
-        Button button = textObject.AddComponent<Button>();
-        button.onClick.AddListener(() => OnTextClicked(email));
+        //Button button = textObject.AddComponent<Button>();
+        //button.onClick.AddListener(() => OnTextClicked(email));
+        NewChat newChat = new NewChat();
+        newChat.recipient = email;
+        GameObject PlayerInfoForList = Instantiate(playerInfoPrefab, NameListCanvas.transform);
+
+        TextMeshProUGUI[] children = PlayerInfoForList.GetComponentsInChildren<TextMeshProUGUI>(true);
+
+        foreach (TextMeshProUGUI child in children)
+        {
+            if (child.CompareTag("PlayerName"))
+            {
+                //GameObject gameObject = child.gameObject;
+                child.text = name;
+                Debug.Log(child.text);
+                break;
+            }
+        }
+
+        Button[] buttons = PlayerInfoForList.GetComponentsInChildren<Button>(true);
+        bool listenerAdded = false;
+
+        foreach (Button btnMsg in buttons)
+        {
+            if (btnMsg.CompareTag("msgBtn"))
+            {
+                btnMsg.onClick.RemoveAllListeners();
+                btnMsg.onClick.AddListener(uiManager.EnableDmPage);
+                
+                Debug.Log("Listener added to button with tag 'msgBtn'");
+                listenerAdded = true;
+                break;
+            }
+        }
+
+        if (!listenerAdded)
+        {
+            Debug.LogWarning("Button with tag 'msgBtn' not found or listener not added.");
+        }
+
+        PlayerInfoForList.transform.Find("Email").GetComponent<TextMeshProUGUI>().text = email;
+        //PlayerName.text = playerInfo.name.Value;
+        PlayerInfoForList.SetActive(true);
     }
 
     public void OnTextClicked(string s)

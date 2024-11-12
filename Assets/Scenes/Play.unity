@@ -10528,6 +10528,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: VideoCanvas (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 3375453811078247116, guid: 01fc66155a447664ba0cc47a94ddc883, type: 3}
+      propertyPath: content
+      value: 
+      objectReference: {fileID: 1292602593}
     - target: {fileID: 5920356211577951603, guid: 01fc66155a447664ba0cc47a94ddc883, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -10624,6 +10628,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6039b212d200bf48b371be45a08190d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!224 &1292602593 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 5839854813932808068, guid: 01fc66155a447664ba0cc47a94ddc883, type: 3}
+  m_PrefabInstance: {fileID: 1292602591}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1303171230
 GameObject:
   m_ObjectHideFlags: 0
@@ -16321,6 +16330,8 @@ MonoBehaviour:
   FullScreenPanel: {fileID: 0}
   exitFullScreen: {fileID: 0}
   fullscreenVideoSurfacePrefab: {fileID: 0}
+  content: {fileID: 0}
+  buttonOffset: 10
 --- !u!1 &1899404415
 GameObject:
   m_ObjectHideFlags: 0
@@ -117094,6 +117105,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   userId: 
   appKey: 611180466#1367536
+  recipient: 
 --- !u!1 &8465613765695382398
 GameObject:
   m_ObjectHideFlags: 0

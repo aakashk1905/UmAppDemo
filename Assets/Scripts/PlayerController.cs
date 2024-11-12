@@ -1,9 +1,11 @@
-using UnityEngine;
 using Fusion;
-using TMPro;
 using Fusion.Addons.Physics;
-using System.Collections.Generic;
 using System.Collections;
+using System.Linq;
+using TMPro;
+using Unity.VisualScripting;
+using UnityEngine;
+using UnityEngine.UI;
 
 public partial class PlayerController : NetworkBehaviour
 {
@@ -23,12 +25,15 @@ public partial class PlayerController : NetworkBehaviour
     public NetworkedDSU _networkedDSU;
     [SerializeField] public GameObject movementJoystick;
     public GameObject NameListCanvas;
+    public GameObject playerInfoPrefab;
     public static PlayerController Instance { get;set; }
+
+    private UiManager uiManager;
 
     private void Awake()
     {
         InitializeComponents();
-        
+        uiManager = FindAnyObjectByType<UiManager>();
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
@@ -74,7 +79,12 @@ public partial class PlayerController : NetworkBehaviour
         {
             _networkedDSU.MakeSet(Object.InputAuthority);
         }
-        NameListCanvas = GameObject.FindGameObjectWithTag("PlayerNameList");
+        //NameListCanvas = GameObject.FindGameObjectWithTag("PlayerNameList");
+        NameListCanvas = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(obj => obj.CompareTag("PlayerNameList"));
+        playerInfoPrefab = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(obj => obj.CompareTag("PlayerInfo"));
+        TextMeshProUGUI PlayerNametxt;
+
+        Debug.LogError(NameListCanvas);
         UpdateSprite();
         if (Object.HasInputAuthority)
         {

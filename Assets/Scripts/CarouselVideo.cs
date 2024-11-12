@@ -3,6 +3,8 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
 using System.Collections;
+using System.Security.Cryptography;
+//using UnityEngine.UIElements;
 
 public class CarouselVideo : MonoBehaviour
 {
@@ -22,8 +24,16 @@ public class CarouselVideo : MonoBehaviour
     [SerializeField] GameObject FullScreenPanel;
     private bool isFullscreen = false;
     [SerializeField] Button exitFullScreen;
-    public GameObject fullscreenVideoSurfacePrefab; // Assign a prefab for the fullscreen surface
-    private GameObject fullscreenVideoSurface; // Reference to the fullscreen surface
+    public GameObject fullscreenVideoSurfacePrefab;
+    private GameObject fullscreenVideoSurface; 
+
+    public RectTransform content;
+    public float buttonOffset = 10f;
+
+    //private void Update()
+    //{
+    //    UpdateButtonPositions();
+    //}
 
     public void ActivateCarousel()
     {
@@ -39,13 +49,10 @@ public class CarouselVideo : MonoBehaviour
 
     public void currentPanel()
     {
-        // Get the last panel.
         CurrentPanel = panels[panels.Count - 1];
 
-        // Check if the current panel has space for more images.
         if (CurrentPanel.transform.childCount >= videoScreensPerPanel)
         {
-            // If the current panel is full, create a new panel.
             CreateNewPanel();
             CurrentPanel = panels[panels.Count - 1];
         }
@@ -58,13 +65,13 @@ public class CarouselVideo : MonoBehaviour
     {
         // Instantiate a new panel and add it to the carouselPanelContainer.
         GameObject newPanel = Instantiate(panelPrefab, carouselPanelContainer.transform);
-        newPanel.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter; // Center alignment for images.
-        newPanel.SetActive(false); // Disable the new panel by default.
+        newPanel.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
+        //newPanel.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(0, 0, 1, 0);
+        newPanel.GetComponent<HorizontalLayoutGroup>().spacing = 0f;
+        newPanel.SetActive(false); 
 
-        // Add the new panel to the list of panels.
         panels.Add(newPanel);
 
-        // If this is the first panel, set it active.
         if (panels.Count == 1)
         {
             newPanel.SetActive(true);
@@ -83,14 +90,11 @@ public class CarouselVideo : MonoBehaviour
         {
             RawImage originalRawImage = originalVideoSurface.GetComponent<RawImage>();
 
-            // Create a new fullscreen video surface
             fullscreenVideoSurface = Instantiate(fullscreenVideoSurfacePrefab, FullScreenPanel.transform);
 
-            // Copy the video feed from the original to the fullscreen surface
             RawImage fullscreenRawImage = fullscreenVideoSurface.GetComponent<RawImage>();
-            fullscreenRawImage.texture = originalRawImage.texture; // Assuming video texture is in RawImage
+            fullscreenRawImage.texture = originalRawImage.texture; 
 
-            // Make the fullscreen panel active
             FullScreenPanel.SetActive(true);
 
             isFullscreen = true;
@@ -101,10 +105,8 @@ public class CarouselVideo : MonoBehaviour
     {
         if (!isFullscreen) return;
 
-        // Destroy the fullscreen surface
         Destroy(fullscreenVideoSurface);
 
-        // Deactivate the fullscreen panel
         FullScreenPanel.SetActive(false);
 
         fullscreenVideoSurface = null;
@@ -147,4 +149,15 @@ public class CarouselVideo : MonoBehaviour
         curentPanelCountText.text = currentPanelIndex + 1 + " / " + panels.Count;
     }
 
+    public void UpdateButtonPositions()
+    {
+        // Get the width of the content
+        float contentWidth = content.rect.width;
+
+        float carouselWidth = content.parent.GetComponent<RectTransform>().rect.width;
+
+        nextButton.transform.position = new Vector3(nextButton.transform.position.x + 30 + contentWidth + buttonOffset, nextButton.transform.position.y);
+
+        previousButton.transform.position = new Vector3(previousButton.transform.position.x - 30 - contentWidth - buttonOffset, previousButton.transform.position.y);
+    }
 }

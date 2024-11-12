@@ -172,7 +172,7 @@ public class BackendIntegration : MonoBehaviour
        
         if (IsUserLoggedIn())
         {
-            SceneManager.LoadScene("Play");
+            SceneManager.LoadScene("PlayMobile");
         }
         else
         {
@@ -223,7 +223,7 @@ public class BackendIntegration : MonoBehaviour
 
                 Debug.LogError(UserDataManager.Instance.GetUserMobile());
 
-                SceneManager.LoadScene("Play");
+                SceneManager.LoadScene("PlayMobile");
             }
         }
     }

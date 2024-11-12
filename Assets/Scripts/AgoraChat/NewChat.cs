@@ -17,8 +17,11 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
     private bool isJoined = false;
     private string tokenBase = "https://agoraapi.vercel.app/chattoken";
     SDKClient agoraChatClient;
-    private string currentRecipient = "";
+    public string currentRecipient = "";
     public string recipient = "";
+
+    [SerializeField] GameObject chatMessagePrefab;
+    [SerializeField] Transform chatContent;
 
 
     public void joinLeave()
@@ -81,6 +84,11 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
     {
         
         string Msg = GameObject.Find("message").GetComponent<TMP_InputField>().text;
+        Debug.Log("Message" + Msg);
+
+        //string recipentId = GameObject.Find("userName").GetComponent<TMP_InputField>().text;
+        //recipient = recipentId;
+        //Debug.Log("Recipent" + recipentId);
 
         if (string.IsNullOrEmpty(Msg) || string.IsNullOrEmpty(recipient))
         {
@@ -110,8 +118,9 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
 
     public void LoadMessageHistory(string recipient)
     {
-        messageList.text = ""; // Clear current chat display
-
+        emptyMsgList(chatContent);
+        //messageList.text = ""; // Clear current chat display
+        Debug.Log(recipient + " recipient load msg history");
         // Get or create a conversation with the specific recipient
         var conversation = agoraChatClient.ChatManager.GetConversation(recipient, ConversationType.Chat);
 
@@ -126,7 +135,9 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
                         if (msg.Body.Type == MessageBodyType.TXT)
                         {
                             TextBody txtBody = msg.Body as TextBody;
-                            displayMessage($"{msg.From}: {txtBody.Text}", msg.From == userId);
+                            Debug.Log(txtBody.Text);
+                            //displayMessage($"{msg.From}: {txtBody.Text}", msg.From == userId);
+                            displayMessage($" {txtBody.Text}", msg.From == userId);
                         }
                     }
                     Debug.Log("Loaded message history successfully.");
@@ -142,36 +153,70 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
         }
     }
 
-
-    public void displayMessage(string messageText, bool isSentMessage)
+    public void emptyMsgList(Transform chatContent)
     {
-        if (isSentMessage)
+        if (chatContent.childCount > 0)
         {
-            messageList.text += "<align=\"right\"><color=black><mark=#dcf8c655 padding=\"10, 10, 0, 0\">" + messageText + "</color></mark>\n";
+            foreach (Transform child in chatContent)
+            {
+                Destroy(child.gameObject);
+            }
+            Debug.Log("All child objects have been deleted.");
         }
         else
         {
-            messageList.text += "<align=\"left\"><color=black><mark=#ffffff55 padding=\"10, 10, 0, 0\">" + messageText + "</color></mark>\n";
+            Debug.Log("No child objects to delete.");
         }
+    }
+
+
+    public void displayMessage(string messageText, bool isSentMessage)
+    {
+        //if (isSentMessage)
+        //{
+        //    messageList.text += "<align=\"right\"><color=black><mark=#dcf8c655 padding=\"10, 10, 0, 0\">" + messageText + "</color></mark>\n";
+        //}
+        //else
+        //{
+        //    messageList.text += "<align=\"left\"><color=black><mark=#ffffff55 padding=\"10, 10, 0, 0\">" + messageText + "</color></mark>\n";
+        //}
+
+        GameObject messageInstance = Instantiate(chatMessagePrefab, chatContent);
+        TMP_Text nameText = messageInstance.transform.Find("NameText").GetComponent<TMP_Text>();
+        TMP_Text messageTextComponent = messageInstance.transform.Find("MessageText").GetComponent<TMP_Text>();
+        //Image avatarImage = messageInstance.transform.Find("Avatar").GetComponent<Image>();
+
+        nameText.text = isSentMessage ? "You" : recipient;
+        messageTextComponent.text = messageText;
+
+        // Customize avatar based on sender if needed
+        //avatarImage.sprite = isSentMessage ? yourAvatarSprite : recipientAvatarSprite;
+
+        // Align to left or right if desired
+        RectTransform rectTransform = messageInstance.GetComponent<RectTransform>();
+        rectTransform.pivot = isSentMessage ? new Vector2(1, 1) : new Vector2(0, 1);
+        rectTransform.localScale = Vector3.one; // Ensure it displays correctly
     }
 
 
     void Start()
     {
-        GameObject.Find("userName/Text Area/Placeholder").GetComponent<TMP_Text>().text = "Enter recipient name";
+        //GameObject.Find("userName/Text Area/Placeholder").GetComponent<TMP_Text>().text = "Enter recipient name";
         GameObject.Find("message/Text Area/Placeholder").GetComponent<TMP_Text>().text = "Message";
         messageList = GameObject.Find("scrollView/Viewport/Content").GetComponent<TextMeshProUGUI>();
-        messageList.fontSize = 14;
-        messageList.text = "";
+        //messageList.fontSize = 14;
+        //messageList.text = "";
         GameObject button = GameObject.Find("joinBtn");
-        button.GetComponent<Button>().onClick.AddListener(joinLeave);
+        //button.GetComponent<Button>().onClick.AddListener(joinLeave);
         button = GameObject.Find("sendBtn");
+        Debug.Log("send button name : " + button);
         button.GetComponent<Button>().onClick.AddListener(sendMessage);
         setupChatSDK();
+
+
     }
     private void Update()
     {
-       
         if (userId == "" && UserDataManager.Instance!=null && UserDataManager.Instance.GetUserEmail() != null)
         {
             Debug.LogError(UserDataManager.Instance.GetUserEmail());

@@ -12,6 +12,9 @@ TagManager:
   - VideoSurfacemine
   - Browser
   - PlayerNameList
+  - PlayerInfo
+  - PlayerName
+  - msgBtn
   layers:
   - Default
   - TransparentFX

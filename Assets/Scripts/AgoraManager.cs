@@ -416,6 +416,7 @@ public class AgoraManager : MonoBehaviour
         {
             carouselVideo.currentPanel();
             gameObject.transform.SetParent(carouselVideo.CurrentPanel.transform);
+            carouselVideo.UpdateButtonPositions();
         }
         else
         {
@@ -425,6 +426,7 @@ public class AgoraManager : MonoBehaviour
         gameObject.transform.Rotate(0f, 0.0f, 180.0f);
         gameObject.transform.localPosition = Vector3.zero;
         gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
+        gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(30,30);
 
         // Add a click event listener to toggle fullscreen
         Button btn = gameObject.AddComponent<Button>(); // Add a Button component for click detection
