@@ -1,113 +1,74 @@
-using UnityEngine.UI;
+using UnityEngine;
 using TMPro;
 using AgoraChat;
-using AgoraChat.MessageBody;
-using UnityEngine;
 using System.Collections.Generic;
-using System;
-using Agora_RTC_Plugin.API_Example;
+using AgoraChat.MessageBody;
 using System.Collections;
-using UnityEngine.Networking;
+using UnityEngine.UI;
 
-public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate 
+public class NewChat : MonoBehaviour, IChatManagerDelegate
 {
+    private ChatInitializer chatInitializer;
     private TMP_Text messageList;
-    [SerializeField] private string userId = "";
-    [SerializeField] private string appKey = "";
-    private bool isJoined = false;
-    private string tokenBase = "https://agoraapi.vercel.app/chattoken";
-    SDKClient agoraChatClient;
+    private SDKClient agoraChatClient;
+    [SerializeField] private GameObject chatMessagePrefab;
+    [SerializeField] private Transform chatContent;
     public string currentRecipient = "";
     public string recipient = "";
 
-    [SerializeField] GameObject chatMessagePrefab;
-    [SerializeField] Transform chatContent;
-
-
-    public void joinLeave()
-    {
-        if (isJoined)
+    public void Load(){
+        chatInitializer = FindObjectOfType<ChatInitializer>();
+        if (chatInitializer != null && chatInitializer.IsJoined)
         {
-            agoraChatClient.Logout(true, callback: new CallBack(
-            onSuccess: () =>
-            {
-                Debug.LogError("Logout succeed");
-                isJoined = false;
-                GameObject.Find("joinBtn").GetComponentInChildren<TextMeshProUGUI>().text = "Join";
-            },
-            onError: (code, desc) =>
-            {
-                Debug.LogError($"Logout failed, code: {code}, desc: {desc}");
-            }));
+            agoraChatClient = SDKClient.Instance;
+            agoraChatClient.ChatManager.AddChatManagerDelegate(this);
         }
         else
         {
-            agoraChatClient.Login(userId, "user1password",false, callback: new CallBack(
-            onSuccess: () =>
-            {
-                Debug.LogError("Login succeed");
-                isJoined = true;
-                GameObject.Find("joinBtn").GetComponentInChildren<TextMeshProUGUI>().text = "Leave";
-            },
-            onError: (code, desc) =>
-            {
-                Debug.LogError($"Login failed, code: {code}, desc: {desc}");
-            }));
+            Debug.LogWarning("Player not logged in. Ensure ChatInitializer has run.");
         }
+
+        GameObject.Find("message/Text Area/Placeholder").GetComponent<TMP_Text>().text = "Message";
+        messageList = GameObject.Find("scrollView/Viewport/Content").GetComponent<TextMeshProUGUI>();
+        GameObject button = GameObject.Find("joinBtn");
+        button = GameObject.Find("sendBtn");
+        button.GetComponent<Button>().onClick.AddListener(sendMessage);
+        StartWaitAndLoad();
     }
 
-    /*public void sendMessage()
-    {
-        string recipient = GameObject.Find("userName").GetComponent<TMP_InputField>().text;
-        string Msg = GameObject.Find("message").GetComponent<TMP_InputField>().text;
-        if (Msg == "" || recipient == "")
-        {
-            Debug.LogError("You did not type your message");
-            return;
-        }
-        Message msg = Message.CreateTextSendMessage(recipient, Msg);
-        displayMessage(Msg, true);
-        agoraChatClient.ChatManager.SendMessage(ref msg, new CallBack(
-            onSuccess: () =>
-            {
-                Debug.LogError($"Send message succeed");
-                GameObject.Find("message").GetComponent<TMP_InputField>().text = "";
-            },
-            onError: (code, desc) =>
-            {
-                Debug.LogError($"Send message failed, code: {code}, desc: {desc}");
-            }));
-    }*/
 
+    private IEnumerator waitAndLoad()
+    {
+
+        yield return new WaitUntil(() => chatInitializer.IsJoined);
+        currentRecipient = recipient;
+        LoadMessageHistory(recipient);
+    }
+
+    // Method to start the coroutine
+    public void StartWaitAndLoad()
+    {
+        StartCoroutine(waitAndLoad());
+    }
 
     public void sendMessage()
     {
-        
-        string Msg = GameObject.Find("message").GetComponent<TMP_InputField>().text;
-        Debug.Log("Message" + Msg);
 
-        //string recipentId = GameObject.Find("userName").GetComponent<TMP_InputField>().text;
-        //recipient = recipentId;
-        //Debug.Log("Recipent" + recipentId);
+        string Msg = GameObject.Find("message").GetComponent<TMP_InputField>().text;
 
         if (string.IsNullOrEmpty(Msg) || string.IsNullOrEmpty(recipient))
         {
             Debug.LogError("You did not type your message");
             return;
         }
-
-        if (recipient != currentRecipient)
-        {
-            currentRecipient = recipient;
-            LoadMessageHistory(currentRecipient); 
-        }
-
+ 
         Message msg = Message.CreateTextSendMessage(recipient, Msg);
-        displayMessage(Msg, true);
+        
         agoraChatClient.ChatManager.SendMessage(ref msg, new CallBack(
             onSuccess: () =>
             {
                 Debug.LogError($"Send message succeed");
+                displayMessage(Msg, true);
                 GameObject.Find("message").GetComponent<TMP_InputField>().text = "";
             },
             onError: (code, desc) =>
@@ -119,15 +80,13 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
     public void LoadMessageHistory(string recipient)
     {
         emptyMsgList(chatContent);
-        //messageList.text = ""; // Clear current chat display
-        Debug.Log(recipient + " recipient load msg history");
-        // Get or create a conversation with the specific recipient
+        Debug.LogError(recipient);
         var conversation = agoraChatClient.ChatManager.GetConversation(recipient, ConversationType.Chat);
 
         if (conversation != null)
         {
             // Load the last 50 messages with a callback to handle the result
-            conversation.LoadMessages(null,count: 50, MessageSearchDirection.UP,new ValueCallBack<List<Message>>(
+            conversation.LoadMessages(null, count: 50, MessageSearchDirection.UP, new ValueCallBack<List<Message>>(
                 onSuccess: (List<Message> historyMessages) =>
                 {
                     foreach (var msg in historyMessages)
@@ -137,10 +96,11 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
                             TextBody txtBody = msg.Body as TextBody;
                             Debug.Log(txtBody.Text);
                             //displayMessage($"{msg.From}: {txtBody.Text}", msg.From == userId);
-                            displayMessage($" {txtBody.Text}", msg.From == userId);
+                            displayMessage($" {txtBody.Text}", msg.From == chatInitializer.UserId);
                         }
                     }
                     Debug.Log("Loaded message history successfully.");
+                    chatInitializer.UnreadMessages[recipient] = 0;
                 },
                 onError: (code, desc) =>
                 {
@@ -153,33 +113,12 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
         }
     }
 
-    public void emptyMsgList(Transform chatContent)
-    {
-        if (chatContent.childCount > 0)
-        {
-            foreach (Transform child in chatContent)
-            {
-                Destroy(child.gameObject);
-            }
-            Debug.Log("All child objects have been deleted.");
-        }
-        else
-        {
-            Debug.Log("No child objects to delete.");
-        }
-    }
+
 
 
     public void displayMessage(string messageText, bool isSentMessage)
     {
-        //if (isSentMessage)
-        //{
-        //    messageList.text += "<align=\"right\"><color=black><mark=#dcf8c655 padding=\"10, 10, 0, 0\">" + messageText + "</color></mark>\n";
-        //}
-        //else
-        //{
-        //    messageList.text += "<align=\"left\"><color=black><mark=#ffffff55 padding=\"10, 10, 0, 0\">" + messageText + "</color></mark>\n";
-        //}
+
 
         GameObject messageInstance = Instantiate(chatMessagePrefab, chatContent);
         TMP_Text nameText = messageInstance.transform.Find("NameText").GetComponent<TMP_Text>();
@@ -197,62 +136,20 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
         rectTransform.pivot = isSentMessage ? new Vector2(1, 1) : new Vector2(0, 1);
         rectTransform.localScale = Vector3.one; // Ensure it displays correctly
     }
-
-
-    void Start()
+    public void emptyMsgList(Transform chatContent)
     {
-        //GameObject.Find("userName/Text Area/Placeholder").GetComponent<TMP_Text>().text = "Enter recipient name";
-        GameObject.Find("message/Text Area/Placeholder").GetComponent<TMP_Text>().text = "Message";
-        messageList = GameObject.Find("scrollView/Viewport/Content").GetComponent<TextMeshProUGUI>();
-        //messageList.fontSize = 14;
-        //messageList.text = "";
-        GameObject button = GameObject.Find("joinBtn");
-        //button.GetComponent<Button>().onClick.AddListener(joinLeave);
-        button = GameObject.Find("sendBtn");
-        Debug.Log("send button name : " + button);
-        button.GetComponent<Button>().onClick.AddListener(sendMessage);
-        setupChatSDK();
-
-
-    }
-    private void Update()
-    {
-        if (userId == "" && UserDataManager.Instance!=null && UserDataManager.Instance.GetUserEmail() != null)
+        if (chatContent.childCount > 0)
         {
-            Debug.LogError(UserDataManager.Instance.GetUserEmail());
-            userId = UserDataManager.Instance.GetUserEmail().Split("@")[0];
-            joinLeave();
-            //StartCoroutine(FetchAndJoinChannel());
+            foreach (Transform child in chatContent)
+            {
+                Destroy(child.gameObject);
+            }
+            Debug.Log("All child objects have been deleted.");
         }
-    }
-    void OnApplicationQuit()
-    {
-        agoraChatClient.ChatManager.RemoveChatManagerDelegate(this);
-        agoraChatClient.Logout(true, callback: new CallBack(
-            onSuccess: () => 
-            {
-                Debug.LogError("Logout succeed");
-            },
-            onError: (code, desc) => 
-            {
-                Debug.LogError($"Logout failed, code: {code}, desc: {desc}");
-            }));
-    }
-
-    void setupChatSDK()
-    {
-        if (appKey == "")
+        else
         {
-            Debug.LogError("You should set your appKey first!");
-            return;
+            Debug.Log("No child objects to delete.");
         }
-
-        Options options = new Options(appKey);
-        options.UsingHttpsOnly = true;
-        options.DebugMode = true;
-        agoraChatClient = SDKClient.Instance;
-        agoraChatClient.InitWithOptions(options);
-        agoraChatClient.ChatManager.AddChatManagerDelegate(this);
     }
 
     public void OnMessagesReceived(List<Message> messages)
@@ -262,11 +159,14 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate, IConnectionDelegate
             if (msg.Body.Type == MessageBodyType.TXT && msg.From == currentRecipient)
             {
                 TextBody txtBody = msg.Body as TextBody;
-                displayMessage($"{msg.From}: {txtBody.Text}", false);
+                displayMessage(txtBody.Text, false);
+            }
+            if(msg.From != currentRecipient)
+            {
+                chatInitializer.UnreadMessages[msg.From] = chatInitializer.UnreadMessages.GetValueOrDefault(msg.From, 0) + 1;
             }
         }
     }
-
     public void OnCmdMessagesReceived(List<Message> messages)
     {
 

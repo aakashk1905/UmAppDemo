@@ -44,7 +44,7 @@ public class PlayerListManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_AddPlayerInfo(string name, string id)
     {
-        Debug.LogError("dobara prayas krre" +  name + " " + id);
+       /* Debug.LogError("dobara prayas krre" +  name + " " + id);*/
         foreach (var playerInfo in playerInfoList)
         {
             if (playerInfo.id == id)

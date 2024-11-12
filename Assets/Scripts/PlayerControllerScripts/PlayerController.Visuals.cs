@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public partial class PlayerController : NetworkBehaviour
 {
     private GameObject targetIndicator;
+ 
 
     private void InitializeVisuals()
     {
@@ -13,32 +14,18 @@ public partial class PlayerController : NetworkBehaviour
 
     private void RenderName(string name, string email)
     {
-        //GameObject textObject = new GameObject("TextMeshPro");
-        //textObject.transform.SetParent(NameListCanvas.transform, false);
-        //TextMeshProUGUI textMeshPro = textObject.AddComponent<TextMeshProUGUI>();
-        //textMeshPro.text = name;
-        //textMeshPro.fontSize = 18;
-        //textMeshPro.alignment = TextAlignmentOptions.Center;
-        //textMeshPro.enableAutoSizing = true;
-
-        //RectTransform rectTransform = textObject.GetComponent<RectTransform>();
-        //rectTransform.sizeDelta = new Vector2(200, 50);
-
-        //Button button = textObject.AddComponent<Button>();
-        //button.onClick.AddListener(() => OnTextClicked(email));
-        NewChat newChat = new NewChat();
-        newChat.recipient = email;
+        
+        /*NewChat newChat = new NewChat();
+        newChat.recipient = email;*/
         GameObject PlayerInfoForList = Instantiate(playerInfoPrefab, NameListCanvas.transform);
-
         TextMeshProUGUI[] children = PlayerInfoForList.GetComponentsInChildren<TextMeshProUGUI>(true);
+        PlayerInfoForList.name = email;
 
         foreach (TextMeshProUGUI child in children)
         {
             if (child.CompareTag("PlayerName"))
             {
-                //GameObject gameObject = child.gameObject;
                 child.text = name;
-                Debug.Log(child.text);
                 break;
             }
         }
@@ -53,7 +40,7 @@ public partial class PlayerController : NetworkBehaviour
                 btnMsg.onClick.RemoveAllListeners();
                 btnMsg.onClick.AddListener(uiManager.EnableDmPage);
                 
-                Debug.Log("Listener added to button with tag 'msgBtn'");
+               /* Debug.Log("Listener added to button with tag 'msgBtn'");*/
                 listenerAdded = true;
                 break;
             }

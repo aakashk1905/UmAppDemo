@@ -15,17 +15,11 @@ public class PlayerInfoPrefabController : MonoBehaviour
         buttonComponent.onClick.AddListener(ReturnTextValue);
     }
 
-    private void Start()
-    {
-        //buttonComponent.onClick.AddListener(ReturnTextValue);
-    }
 
     private void ReturnTextValue()
     {
         string textValue = textComponent.text;
-        Debug.Log("Button clicked! Text Value: " + textValue);
-        Debug.Log( newChat.enabled ? "New chat enabled" : "New Chat Disabled");  
         newChat.recipient = textValue;
-        newChat.LoadMessageHistory(textValue);
+        newChat.Load();
     }
 }

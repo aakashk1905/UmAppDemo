@@ -25,7 +25,7 @@ public partial class PlayerController : NetworkBehaviour
     public NetworkedDSU _networkedDSU;
     [SerializeField] public GameObject movementJoystick;
     public GameObject NameListCanvas;
-    public GameObject playerInfoPrefab;
+    [SerializeField] public GameObject playerInfoPrefab;
     public static PlayerController Instance { get;set; }
 
     private UiManager uiManager;
@@ -84,7 +84,7 @@ public partial class PlayerController : NetworkBehaviour
         playerInfoPrefab = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(obj => obj.CompareTag("PlayerInfo"));
         TextMeshProUGUI PlayerNametxt;
 
-        Debug.LogError(NameListCanvas);
+        /*Debug.LogError(NameListCanvas);*/
         UpdateSprite();
         if (Object.HasInputAuthority)
         {

@@ -93,7 +93,7 @@ public class CharacterChoose : NetworkBehaviour
                 SaveData data = JsonUtility.FromJson<SaveData>(json);
                 selectedCharacterIndex = data.selectedCharacterIndex;
                 SetAnimatorController(selectedCharacterIndex);
-                Debug.Log("Loaded character index: " + selectedCharacterIndex);
+               /* Debug.Log("Loaded character index: " + selectedCharacterIndex);*/
             }
             catch (Exception e)
             {
