@@ -36,6 +36,17 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate
         StartWaitAndLoad();
     }
 
+    private void newMsgIndicator(string email, int newMsgCount)
+    {
+        Transform playerInfo = GameObject.Find(email).GetComponent<Transform>();
+        foreach (Transform child in playerInfo)
+        {
+            if (child.name == "NotificationCount")
+            {
+                child.GetComponent<TextMeshProUGUI>().text = newMsgCount.ToString();
+            }
+        }
+    }
 
     private IEnumerator waitAndLoad()
     {
