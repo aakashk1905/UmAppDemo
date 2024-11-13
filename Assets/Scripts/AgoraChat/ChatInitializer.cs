@@ -2,21 +2,33 @@ using UnityEngine;
 using AgoraChat;
 using TMPro;
 using System.Collections.Generic;
+using System.Collections;
+using UnityEngine.UI;
+using AgoraChat.MessageBody;
+using Newtonsoft.Json;
 
-public class ChatInitializer : MonoBehaviour, IConnectionDelegate
+public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerDelegate
 {
     [SerializeField] private string userId = "";
     [SerializeField] private string appKey = "";
+    [SerializeField] private GameObject chatMessagePrefab;
+    [SerializeField] private Transform chatContent;
+    [SerializeField] private Transform NotifOuter;
+
     private SDKClient agoraChatClient;
     private bool isJoined = false;
-    public Dictionary<string, int> UnreadMessages;
+    public Dictionary<string, int> UnreadMessages = new Dictionary<string, int>();
+    private TMP_Text messageList;
+
+    public string currentRecipient = "";
+    public string recipient = "";
 
     void Start()
     {
+        LoadUnreadMessages();
         setupChatSDK();
-        UnreadMessages = new Dictionary<string, int>();
-
     }
+
     private void Update()
     {
         if (userId == "" && UserDataManager.Instance != null && UserDataManager.Instance.GetUserEmail() != null)
@@ -26,9 +38,11 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate
             if (!isJoined)
             {
                 joinAgoraChat();
+               
             }
         }
     }
+
     private void setupChatSDK()
     {
         if (string.IsNullOrEmpty(appKey))
@@ -60,17 +74,20 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate
             {
                 Debug.Log("Login successful");
                 isJoined = true;
+                agoraChatClient.ChatManager.AddChatManagerDelegate(this);
             },
             onError: (code, desc) =>
             {
                 Debug.LogError($"Login failed: code {code}, desc: {desc}");
             }));
     }
+
     public bool IsJoined => isJoined;
     public string UserId => userId;
 
     void OnApplicationQuit()
     {
+        SaveUnreadMessages();
         if (agoraChatClient != null)
         {
             agoraChatClient.Logout(true, new CallBack(
@@ -80,65 +97,424 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate
         }
     }
 
-    void IConnectionDelegate.OnConnected()
+    public void Load()
+    {
+        if (isJoined)
+        {
+            GameObject.Find("message/Text Area/Placeholder").GetComponent<TMP_Text>().text = "Message";
+            messageList = GameObject.Find("scrollView/Viewport/Content").GetComponent<TextMeshProUGUI>();
+            GameObject.Find("CloseChat").GetComponent<Button>().onClick.AddListener(CloseChat);
+            GameObject.Find("sendBtn").GetComponent<Button>().onClick.AddListener(sendMessage);
+            StartWaitAndLoad();
+        }
+        else
+        {
+            Debug.LogWarning("Player not logged in. Ensure ChatInitializer has run.");
+        }
+    }
+
+    private void CloseChat()
+    {
+        recipient = "";
+        currentRecipient = "";
+    }
+
+    private void SaveUnreadMessages()
+    {
+        string json = JsonConvert.SerializeObject(UnreadMessages);
+        PlayerPrefs.SetString("UnreadMessages", json);
+        PlayerPrefs.Save();
+        Debug.LogWarning("Unread messages saved.");
+    }
+    private void LoadUnreadMessages()
+    {
+        if (PlayerPrefs.HasKey("UnreadMessages"))
+        {
+            string json = PlayerPrefs.GetString("UnreadMessages");
+            UnreadMessages = JsonConvert.DeserializeObject<Dictionary<string, int>>(json);
+            Debug.LogWarning("Unread messages loaded.");
+            UpdateOuterNotif();
+        }
+        
+    }
+
+
+    private IEnumerator waitAndLoad()
+    {
+        yield return new WaitUntil(() => isJoined);
+        currentRecipient = recipient;
+        LoadMessageHistory(recipient);
+    }
+
+    public void StartWaitAndLoad()
+    {
+        StartCoroutine(waitAndLoad());
+    }
+
+    public void sendMessage()
+    {
+        string Msg = GameObject.Find("message").GetComponent<TMP_InputField>().text;
+
+        if (string.IsNullOrEmpty(Msg) || string.IsNullOrEmpty(recipient))
+        {
+            Debug.LogError("You did not type your message");
+            return;
+        }
+
+        Message msg = Message.CreateTextSendMessage(recipient, Msg);
+
+        agoraChatClient.ChatManager.SendMessage(ref msg, new CallBack(
+            onSuccess: () =>
+            {
+                Debug.LogError("Send message succeed");
+                displayMessage(Msg, true);
+                GameObject.Find("message").GetComponent<TMP_InputField>().text = "";
+            },
+            onError: (code, desc) =>
+            {
+                Debug.LogError($"Send message failed, code: {code}, desc: {desc}");
+            }));
+    }
+
+    public void LoadMessageHistory(string recipient)
+    {
+        emptyMsgList(chatContent);
+        Debug.LogError(recipient);
+        var conversation = agoraChatClient.ChatManager.GetConversation(recipient, ConversationType.Chat);
+
+        if (conversation != null)
+        {
+            conversation.LoadMessages(null, count: 50, MessageSearchDirection.UP, new ValueCallBack<List<Message>>(
+                onSuccess: (List<Message> historyMessages) =>
+                {
+                    foreach (var msg in historyMessages)
+                    {
+                        if (msg.Body.Type == MessageBodyType.TXT)
+                        {
+                            TextBody txtBody = msg.Body as TextBody;
+                            displayMessage(txtBody.Text, msg.From == userId);
+                        }
+                    }
+                   
+                    Debug.Log("Loaded message history successfully.");
+                    UnreadMessages[recipient] = 0;
+                    UpdateOuterNotif();
+                    ResetNotificationCounter(recipient);
+                },
+                onError: (code, desc) =>
+                {
+                    Debug.LogError($"Failed to load message history, code: {code}, desc: {desc}");
+                }));
+        }
+        else
+        {
+            Debug.LogError("No conversation found with the specified recipient.");
+        }
+    }
+
+    public void displayMessage(string messageText, bool isSentMessage)
+    {
+        GameObject messageInstance = Instantiate(chatMessagePrefab, chatContent);
+        TMP_Text nameText = messageInstance.transform.Find("NameText").GetComponent<TMP_Text>();
+        TMP_Text messageTextComponent = messageInstance.transform.Find("MessageText").GetComponent<TMP_Text>();
+
+        nameText.text = isSentMessage ? "You" : recipient;
+        messageTextComponent.text = messageText;
+
+        RectTransform rectTransform = messageInstance.GetComponent<RectTransform>();
+        rectTransform.pivot = isSentMessage ? new Vector2(1, 1) : new Vector2(0, 1);
+        rectTransform.localScale = Vector3.one;
+    }
+
+    public void emptyMsgList(Transform chatContent)
+    {
+        foreach (Transform child in chatContent)
+        {
+            Destroy(child.gameObject);
+        }
+    }
+
+    public void OnMessagesReceived(List<Message> messages)
+    {
+        foreach (Message msg in messages)
+        {
+            if (msg.Body.Type == MessageBodyType.TXT && msg.From == currentRecipient)
+            {
+                TextBody txtBody = msg.Body as TextBody;
+                displayMessage(txtBody.Text, false);
+            }
+            if (msg.From != currentRecipient)
+            {
+                UnreadMessages[msg.From] = UnreadMessages.GetValueOrDefault(msg.From, 0) + 1;
+                UpdateOuterNotif();
+                Debug.LogError("New Message from " + msg.From);
+            }
+        }
+    }
+
+    public void ResetNotificationCounter(string userId)
+    {
+        if (UnreadMessages.ContainsKey(userId))
+        {
+            // Reset the unread message count for the user
+            UnreadMessages[userId] = 0;
+
+            // Update the UI to reflect the reset count
+            GameObject playerObject = GameObject.Find(userId);
+
+            if (playerObject != null)
+            {
+                Transform msgBtn = playerObject.transform.Find("msgBtn");
+                if (msgBtn != null)
+                {
+                    Transform imgTransform = msgBtn.Find("img");
+                    if (imgTransform != null)
+                    {
+                       
+                        Transform notificationCounter = imgTransform.Find("NotificationCount");
+                        if (notificationCounter != null)
+                        {
+                            TextMeshProUGUI notificationText = notificationCounter.GetComponent<TextMeshProUGUI>();
+                            if (notificationText != null)
+                            {
+                               
+                                notificationText.text = "0";
+                            }
+                            
+                        }
+                        imgTransform.gameObject.SetActive(false);
+                    }
+
+                    
+                }
+                
+            }
+            
+        }
+    }
+    public void UpdateNotificationCounter()
+    {
+        foreach (var entry in UnreadMessages)
+        {
+            string userId = entry.Key;
+            int messageCount = entry.Value;
+            if (messageCount > 0)
+            {
+                GameObject playerObject = GameObject.Find(userId);
+
+                if (playerObject != null)
+                {
+                    Transform msgBtn = playerObject.transform.Find("msgBtn");
+                    if (msgBtn != null)
+                    {
+                        Transform imgTransform = msgBtn.Find("img");
+                        if (imgTransform != null)
+                        {
+                            Transform notificationCounter = imgTransform.Find("NotificationCount");
+                            if (notificationCounter != null)
+                            {
+                                TextMeshProUGUI notificationText = notificationCounter.GetComponent<TextMeshProUGUI>();
+                                if (notificationText != null)
+                                {
+                                    notificationText.text = messageCount.ToString();
+                                    imgTransform.gameObject.SetActive(true);
+                                }
+                                
+                            }
+                            
+                        }
+                        
+                    }
+                   
+                }
+                
+            }
+        }
+    }
+
+    public void UpdateOuterNotif()
+    {
+        StartCoroutine(UpdateOuterNotifCoroutine());
+    }
+
+    private IEnumerator UpdateOuterNotifCoroutine()
+    {
+        // Wait until isJoined is true
+        yield return new WaitUntil(() => isJoined);
+
+        int count = UnreadMessages.Count;
+        if (NotifOuter != null) // Check if NotifOuter is assigned
+        {
+            Transform Notif = NotifOuter.Find("Notif");
+            if (Notif != null)
+            {
+                Transform msgBtn = Notif.transform.Find("NotifCount");
+                if (msgBtn != null)
+                {
+                    TextMeshProUGUI notificationText = msgBtn.GetComponent<TextMeshProUGUI>();
+                    if (notificationText != null)
+                    {
+                        notificationText.text = count.ToString();
+                        Notif.gameObject.SetActive(true);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("NotifCount Not Found");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("Notif Not Found");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("NotifOuter Not Found");
+        }
+    }
+
+
+    /*public void UpdateOuterNotif()
+    {
+        int count = UnreadMessages.Count;
+        if (!NotifOuter)
+        {
+            Transform Notif = NotifOuter.Find("Notif");
+            if (Notif != null)
+            {
+                Transform msgBtn = Notif.transform.Find("NotifCount");
+                if (msgBtn != null)
+                {
+                    TextMeshProUGUI notificationText = msgBtn.GetComponent<TextMeshProUGUI>();
+                    if (notificationText != null)
+                    {
+                        notificationText.text = count.ToString();
+                        Notif.gameObject.SetActive(true);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("NotifCount Not FOund");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("Notif Not FOund");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("NotifOuter Not Found");
+        }
+    }*/
+    public void OnConnected()
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnDisconnected()
+    public void OnDisconnected()
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnLoggedOtherDevice(string deviceName)
+    public void OnLoggedOtherDevice(string deviceName)
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnRemovedFromServer()
+    public void OnRemovedFromServer()
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnForbidByServer()
+    public void OnForbidByServer()
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnChangedIMPwd()
+    public void OnChangedIMPwd()
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnLoginTooManyDevice()
+    public void OnLoginTooManyDevice()
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnKickedByOtherDevice()
+    public void OnKickedByOtherDevice()
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnAuthFailed()
+    public void OnAuthFailed()
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnTokenExpired()
+    public void OnTokenExpired()
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnTokenWillExpire()
+    public void OnTokenWillExpire()
     {
         throw new System.NotImplementedException();
     }
 
-    void IConnectionDelegate.OnAppActiveNumberReachLimitation()
+    public void OnAppActiveNumberReachLimitation()
     {
         throw new System.NotImplementedException();
     }
 
-    
+    public void OnCmdMessagesReceived(List<Message> messages)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void OnMessagesRead(List<Message> messages)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void OnMessagesDelivered(List<Message> messages)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void OnMessagesRecalled(List<Message> messages)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void OnReadAckForGroupMessageUpdated()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void OnGroupMessageRead(List<GroupReadAck> list)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void OnConversationsUpdate()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void OnConversationRead(string from, string to)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void MessageReactionDidChange(List<MessageReactionChange> list)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void OnMessageContentChanged(Message msg, string operatorId, long operationTime)
+    {
+        throw new System.NotImplementedException();
+    }
 }

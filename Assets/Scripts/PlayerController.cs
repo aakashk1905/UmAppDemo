@@ -25,7 +25,7 @@ public partial class PlayerController : NetworkBehaviour
     public NetworkedDSU _networkedDSU;
     [SerializeField] public GameObject movementJoystick;
     public GameObject NameListCanvas;
-    [SerializeField] public GameObject playerInfoPrefab;
+    public GameObject playerInfoPrefab;
     public static PlayerController Instance { get;set; }
 
     private UiManager uiManager;
@@ -82,7 +82,7 @@ public partial class PlayerController : NetworkBehaviour
         //NameListCanvas = GameObject.FindGameObjectWithTag("PlayerNameList");
         NameListCanvas = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(obj => obj.CompareTag("PlayerNameList"));
         playerInfoPrefab = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(obj => obj.CompareTag("PlayerInfo"));
-        TextMeshProUGUI PlayerNametxt;
+        /*TextMeshProUGUI PlayerNametxt;*/
 
         /*Debug.LogError(NameListCanvas);*/
         UpdateSprite();

@@ -1,4 +1,4 @@
-using UnityEngine;
+/*using UnityEngine;
 using TMPro;
 using AgoraChat;
 using System.Collections.Generic;
@@ -16,7 +16,9 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate
     public string currentRecipient = "";
     public string recipient = "";
 
-    public void Load(){
+    public void Load()
+    {
+
         chatInitializer = FindObjectOfType<ChatInitializer>();
         if (chatInitializer != null && chatInitializer.IsJoined)
         {
@@ -30,10 +32,16 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate
 
         GameObject.Find("message/Text Area/Placeholder").GetComponent<TMP_Text>().text = "Message";
         messageList = GameObject.Find("scrollView/Viewport/Content").GetComponent<TextMeshProUGUI>();
-        GameObject button = GameObject.Find("joinBtn");
-        button = GameObject.Find("sendBtn");
+        GameObject close = GameObject.Find("CloseChat");
+        close.GetComponent<Button>().onClick.AddListener(CloseChat);
+        GameObject button = GameObject.Find("sendBtn");
         button.GetComponent<Button>().onClick.AddListener(sendMessage);
         StartWaitAndLoad();
+    }
+    private void CloseChat()
+    {
+        recipient = "";
+        currentRecipient = "";
     }
 
     private void newMsgIndicator(string email, int newMsgCount)
@@ -72,9 +80,9 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate
             Debug.LogError("You did not type your message");
             return;
         }
- 
+
         Message msg = Message.CreateTextSendMessage(recipient, Msg);
-        
+
         agoraChatClient.ChatManager.SendMessage(ref msg, new CallBack(
             onSuccess: () =>
             {
@@ -172,9 +180,10 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate
                 TextBody txtBody = msg.Body as TextBody;
                 displayMessage(txtBody.Text, false);
             }
-            if(msg.From != currentRecipient)
+            if (msg.From != currentRecipient)
             {
                 chatInitializer.UnreadMessages[msg.From] = chatInitializer.UnreadMessages.GetValueOrDefault(msg.From, 0) + 1;
+                Debug.LogError("New Message from " + msg.From);
             }
         }
     }
@@ -288,3 +297,4 @@ public class NewChat : MonoBehaviour, IChatManagerDelegate
 
     }
 }
+*/

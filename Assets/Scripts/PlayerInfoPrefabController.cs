@@ -8,13 +8,11 @@ public class PlayerInfoPrefabController : MonoBehaviour
 {
     public TextMeshProUGUI textComponent; 
     public Button buttonComponent; 
-    [SerializeField] public NewChat newChat;
-    private ChatInitializer chatInitializer;
+    [SerializeField] public ChatInitializer chatInitializer;
+    
 
     private void Awake()
     {
-        newChat = FindAnyObjectByType<NewChat>();
-        chatInitializer = FindAnyObjectByType<ChatInitializer>();
         buttonComponent.onClick.AddListener(ReturnTextValue);
     }
 
@@ -26,8 +24,8 @@ public class PlayerInfoPrefabController : MonoBehaviour
     private void ReturnTextValue()
     {
         string textValue = textComponent.text;
-        newChat.recipient = textValue;
-        newChat.Load();
+        chatInitializer.recipient = textValue;
+        chatInitializer.Load();
     }
 
     public void UpdateAllMessageIndicators()
