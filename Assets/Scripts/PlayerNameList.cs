@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using static Unity.Collections.Unicode;
 
 public class PlayerNameList : MonoBehaviour
 {
@@ -18,8 +19,6 @@ public class PlayerNameList : MonoBehaviour
     [SerializeField] private GameObject _RoomPanel;
     [SerializeField] private GameObject _SettingsPanel;
     private AgoraManager agora;
-
-
     void Start()
     {
         _SettingsPanel.SetActive(false);
@@ -30,24 +29,28 @@ public class PlayerNameList : MonoBehaviour
         _overlay.GetComponent<Button>().onClick.AddListener(closePlayerListNamePanel);
         agora = AgoraManager.Instance;
     }
-    public void Logout()
+ 
+    public async void Logout()
     {
-    
+        
+        agora.RtcEngine.LeaveChannel();
         UserDataManager.Instance.LogOut();
+        agora.Dispose();
 
         if (NetworkRunner.Instances.Count > 0)
         {
             NetworkRunner runner = NetworkRunner.Instances[0];
             if (runner != null && runner.IsRunning)
             {
-                runner.Shutdown();
+                PlayerListManager.Instance.RemovePlayerInfo(agora.playerId);
+
+                await runner.Shutdown();
             }
         }
-        agora.RtcEngine.LeaveChannel(); ;
-
         SceneManager.LoadScene("Login");
 
     }
+
     public void openPlayerListNamePanel()   
     {
        
@@ -97,5 +100,5 @@ public class PlayerNameList : MonoBehaviour
     {
         _SettingsPanel.SetActive(false);
     }
-    
 }
+

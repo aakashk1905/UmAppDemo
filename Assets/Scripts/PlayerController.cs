@@ -5,6 +5,7 @@ using System.Linq;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public partial class PlayerController : NetworkBehaviour
@@ -29,6 +30,7 @@ public partial class PlayerController : NetworkBehaviour
     public static PlayerController Instance { get;set; }
 
     private UiManager uiManager;
+    private ChatInitializer chatInitializer;
 
     private void Awake()
     {
@@ -38,7 +40,16 @@ public partial class PlayerController : NetworkBehaviour
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
-        PlayerListManager.Instance.RemovePlayerInfo(_playerID.ToString());
+        if (chatInitializer != null && Object.HasInputAuthority)
+        {
+            chatInitializer.SaveAndLogout();
+            
+        }
+        if (Instance == this && Object.HasInputAuthority)
+        {
+            Instance = null;
+        }
+
         base.Despawned(runner, hasState);
 
     }
@@ -48,6 +59,7 @@ public partial class PlayerController : NetworkBehaviour
         {
             Instance = this;
         }
+        _agoraManager = AgoraManager.Instance;
         moveSpeed = 1.2f;
 
         if (Object.HasInputAuthority)
@@ -70,7 +82,7 @@ public partial class PlayerController : NetworkBehaviour
         InitializeChannelManager();
         InitializeVisuals();
 
-        _agoraManager = AgoraManager.Instance;
+        
         networkTableManager = NetworkTableManager.Instance;
         _networkedDSU = NetworkedDSU.Instance;
         playerListManager = PlayerListManager.Instance;
@@ -79,18 +91,17 @@ public partial class PlayerController : NetworkBehaviour
         {
             _networkedDSU.MakeSet(Object.InputAuthority);
         }
-        //NameListCanvas = GameObject.FindGameObjectWithTag("PlayerNameList");
         NameListCanvas = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(obj => obj.CompareTag("PlayerNameList"));
+       
         playerInfoPrefab = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(obj => obj.CompareTag("PlayerInfo"));
-        /*TextMeshProUGUI PlayerNametxt;*/
 
-        /*Debug.LogError(NameListCanvas);*/
         UpdateSprite();
         if (Object.HasInputAuthority)
         {
             _agoraManager.CreateLocalVideoView();
         }
         StartCoroutine(SetList());
+        chatInitializer = GameObject.Find("ChatInitializer").GetComponent<ChatInitializer>();
     }
 
     private IEnumerator WaitForPlayerListManager()
@@ -104,9 +115,9 @@ public partial class PlayerController : NetworkBehaviour
         
     }
 
-        private IEnumerator SetList()
+    private IEnumerator SetList()
     {
-        while (playerListManager == null)
+        while (playerListManager == null && NameListCanvas == null)
         {
             yield return null;
         }
@@ -116,10 +127,14 @@ public partial class PlayerController : NetworkBehaviour
             PlayerListManager.OnPlayerListUpdated += UpdateNameList;
         }
     }
-
+   
     private void UpdateNameList()
     {
+        if (NameListCanvas == null)return;
+        
         if (!Object.HasInputAuthority) return;
+
+        
 
         foreach (Transform child in NameListCanvas.transform)
         {
@@ -150,6 +165,7 @@ public partial class PlayerController : NetworkBehaviour
         if (UserDataManager.Instance != null && UserDataManager.Instance.CurrentUser != null)
         {
             string name = UserDataManager.Instance.GetUserName();
+            _agoraManager.setPlayer(Object.InputAuthority.PlayerId.ToString());
             RPC_RequestSetPlayerInfo(Object.InputAuthority.PlayerId, name);
         }
     }

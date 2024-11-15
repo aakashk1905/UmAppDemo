@@ -75,100 +75,11 @@ public class WebViewController : MonoBehaviour
         GpmWebView.ExecuteJavaScript(script);
     }
 
-   /* // Popup default
-    public void ShowUrlPopupDefault()
+    public void Close()
     {
-        GpmWebView.ShowUrl(
-            "https://upskillmafia.com/mern/tasks",
-            new GpmWebViewRequest.Configuration()
-            {
-                style = GpmWebViewStyle.POPUP,
-                orientation = GpmOrientation.UNSPECIFIED,
-                isClearCookie = true,
-                isClearCache = true,
-                isNavigationBarVisible = true,
-                isCloseButtonVisible = true,
-                supportMultipleWindows = true,
-#if UNITY_IOS
-                contentMode = GpmWebViewContentMode.MOBILE,
-                isMaskViewVisible = true,
-#endif
-            },
-            OnCallback,
-            new List<string>() { "USER_CUSTOM_SCHEME" }
-        );
+        Destroy(prefabToSpawn);
     }
-
-    // Popup custom position and size
-    public void ShowUrlPopupPositionSize()
-    {
-        GpmWebView.ShowUrl(
-            "https://upskillmafia.com/mern/tasks",
-            new GpmWebViewRequest.Configuration()
-            {
-                style = GpmWebViewStyle.POPUP,
-                orientation = GpmOrientation.UNSPECIFIED,
-                isClearCookie = true,
-                isClearCache = true,
-                isNavigationBarVisible = true,
-                isCloseButtonVisible = true,
-                position = new GpmWebViewRequest.Position
-                {
-                    hasValue = true,
-                    x = (int)(Screen.width * 0.1f),
-                    y = (int)(Screen.height * 0.1f)
-                },
-                size = new GpmWebViewRequest.Size
-                {
-                    hasValue = true,
-                    width = (int)(Screen.width * 0.8f),
-                    height = (int)(Screen.height * 0.8f)
-                },
-                supportMultipleWindows = true,
-#if UNITY_IOS
-                contentMode = GpmWebViewContentMode.MOBILE,
-                isMaskViewVisible = true,
-#endif
-            },
-            OnCallback,
-            new List<string>() { "USER_CUSTOM_SCHEME" }
-        );
-    }
-
-    // Popup custom margins
-    public void ShowUrlPopupMargins()
-    {
-        GpmWebView.ShowUrl(
-            "https://upskillmafia.com/mern/tasks",
-            new GpmWebViewRequest.Configuration()
-            {
-                style = GpmWebViewStyle.POPUP,
-                orientation = GpmOrientation.UNSPECIFIED,
-                isClearCookie = true,
-                isClearCache = true,
-                isNavigationBarVisible = true,
-                isCloseButtonVisible = true,
-                addJavascript= "$@\"\r\n            function setCookie(name, value, days) {{\r\n                var expires = '';\r\n                if (days) {{\r\n                    var date = new Date();\r\n                    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));\r\n                    expires = '; expires=' + date.toUTCString();\r\n                }}\r\n                document.cookie = name + '=' + (value || '') + expires + '; path=/';\r\n            }}\r\n            setCookie('user_email', '{userEmail}', 7);\r\n            setCookie('user_name', '{userName}', 7);\r\n        \"",
-                margins = new GpmWebViewRequest.Margins
-                {
-                    hasValue = true,
-                    left = (int)(Screen.width * 0.1f),
-                    top = (int)(Screen.height * 0.1f),
-                    right = (int)(Screen.width * 0.1f),
-                    bottom = (int)(Screen.height * 0.1f)
-                },
-                supportMultipleWindows = true,
-#if UNITY_IOS
-                contentMode = GpmWebViewContentMode.MOBILE,
-                isMaskViewVisible = true,
-#endif
-            },
-            OnCallback,
-            new List<string>() { "USER_CUSTOM_SCHEME" }
-        );
-    }
-*/
-    private void OnCallback(GpmWebViewCallback.CallbackType callbackType, string data, GpmWebViewError error)
+     private void OnCallback(GpmWebViewCallback.CallbackType callbackType, string data, GpmWebViewError error)
     {
         Debug.LogError($"WebView Callback: {callbackType}");
 

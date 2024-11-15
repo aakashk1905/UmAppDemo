@@ -34,7 +34,7 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
     {
         if (userId == "" && UserDataManager.Instance != null && UserDataManager.Instance.GetUserEmail() != null)
         {
-            Debug.LogError(UserDataManager.Instance.GetUserEmail());
+           
             userId = UserDataManager.Instance.GetUserEmail().Split("@")[0];
             if (!isJoined)
             {
@@ -73,13 +73,15 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
         agoraChatClient.Login(userId, "user1password", false, callback: new CallBack(
             onSuccess: () =>
             {
-                Debug.Log("Login successful");
+                Debug.LogError("Login successful");
                 isJoined = true;
                 agoraChatClient.ChatManager.AddChatManagerDelegate(this);
             },
             onError: (code, desc) =>
             {
                 Debug.LogError($"Login failed: code {code}, desc: {desc}");
+                // Show A popup for login error and then retry to join chat...
+                joinAgoraChat();
             }));
     }
 
@@ -87,6 +89,10 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
     public string UserId => userId;
 
     void OnApplicationQuit()
+    {
+        SaveAndLogout();
+    }
+   public void SaveAndLogout()
     {
         SaveUnreadMessages();
         if (agoraChatClient != null)

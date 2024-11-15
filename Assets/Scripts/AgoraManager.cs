@@ -7,11 +7,8 @@ using System.Collections;
 using Agora_RTC_Plugin.API_Example;
 using UnityEngine.UI;
 using WebSocketSharp;
-/*using static Unity.Collections.Unicode;
-using UnityEngine.SocialPlatforms.Impl;
-using UnityEngine.Video;
-using TMPro;
-using UnityEditor.Rendering.LookDev;*/
+using AgoraChat;
+
 
 public class AgoraManager : MonoBehaviour
 {
@@ -21,6 +18,7 @@ public class AgoraManager : MonoBehaviour
     [SerializeField] private GameObject canvas;
     [SerializeField] private string tokenBase = "https://agoraapi.vercel.app/token";
     private bool isMuted = false;
+    public string playerId;
     private bool isVideoEnabled = true;
     private bool isSharingScreen = false;
     public bool IsInitialized { get; private set; } = false;
@@ -30,7 +28,10 @@ public class AgoraManager : MonoBehaviour
     public string _channelName = "";
 
     private Dictionary<string, HashSet<uint>> channelUsers = new Dictionary<string, HashSet<uint>>();
-
+    public void setPlayer(string pl)
+    {
+        playerId = pl;
+    }
 
     public CONNECTION_STATE_TYPE connectionState = CONNECTION_STATE_TYPE.CONNECTION_STATE_DISCONNECTED;
     [Networked] public Dictionary<string, int> Bridges { get; set; }
@@ -55,6 +56,19 @@ public class AgoraManager : MonoBehaviour
             return;
         }
         DontDestroyOnLoad(gameObject);
+       
+    }
+    public void Dispose()
+    {
+        if (RtcEngine != null)
+        {
+            RtcEngine.LeaveChannel();
+            RtcEngine.Dispose();
+            RtcEngine = null;
+        }
+
+        Instance = null;
+        Destroy(gameObject);
     }
 
     private void Start()
@@ -160,7 +174,8 @@ public class AgoraManager : MonoBehaviour
             videoSurface.SetEnable(true);
         }
 
-
+        ToggleMute();
+        ToggleVideo();
     }
 
    public void ToggleScreenShare()
@@ -373,7 +388,7 @@ public class AgoraManager : MonoBehaviour
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
 
-    public string GenerateChannelName(String name)
+    public string GenerateChannelName(string name)
     { 
         string newChannelName = "user_" + name;
         return newChannelName;

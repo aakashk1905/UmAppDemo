@@ -8,7 +8,7 @@ public class UiManager : MonoBehaviour
     [SerializeField] GameObject settingsScreen;
     [SerializeField] GameObject activeUserScreen;
     [SerializeField] GameObject DmPage;
-    /*[SerializeField] NewChat newChat;*/
+
 
     public void EnableScreen()
     {

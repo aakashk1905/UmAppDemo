@@ -18,7 +18,7 @@ public partial class PlayerController : NetworkBehaviour
         string currentUserEmail = UserDataManager.Instance.GetUserEmail();
         string currentUsername = currentUserEmail?.Split('@')[0];
 
-        Debug.LogError(email + "email full" + currentUsername);
+     
 
         GameObject PlayerInfoForList = Instantiate(playerInfoPrefab, NameListCanvas.transform);
         TextMeshProUGUI[] children = PlayerInfoForList.GetComponentsInChildren<TextMeshProUGUI>(true);
