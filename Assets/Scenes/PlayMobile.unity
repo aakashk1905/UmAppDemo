@@ -3563,7 +3563,7 @@ MonoBehaviour:
     m_Bottom: 0
   m_ChildAlignment: 0
   m_Spacing: 20
-  m_ChildForceExpandWidth: 1
+  m_ChildForceExpandWidth: 0
   m_ChildForceExpandHeight: 1
   m_ChildControlWidth: 0
   m_ChildControlHeight: 0
@@ -12289,6 +12289,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7404391325561059731, guid: bc2b097bee0dbfa448c9ef02ce6ca660, type: 3}
+      propertyPath: m_Name
+      value: TeleportBtn
+      objectReference: {fileID: 0}
     - target: {fileID: 9014111524142090096, guid: bc2b097bee0dbfa448c9ef02ce6ca660, type: 3}
       propertyPath: m_Name
       value: PlayerInfo
@@ -16613,7 +16617,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   userId: 
   appKey: 611180466#1367536
-  chatMessagePrefab: {fileID: 4066193526411849147, guid: b8d93b112d93a1d49a544599a1976f80, type: 3}
+  leftMessagePrefab: {fileID: 4066193526411849147, guid: b8d93b112d93a1d49a544599a1976f80, type: 3}
+  rightMessagePrefab: {fileID: 7437778413717663831, guid: b4412be9e4ec64240826ed4ad3832bf8, type: 3}
   chatContent: {fileID: 337110399}
   NotifOuter: {fileID: 1824507831}
   currentRecipient: 

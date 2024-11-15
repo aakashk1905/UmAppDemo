@@ -11,7 +11,8 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
 {
     [SerializeField] private string userId = "";
     [SerializeField] private string appKey = "";
-    [SerializeField] private GameObject chatMessagePrefab;
+    [SerializeField] private GameObject leftMessagePrefab;
+    [SerializeField] private GameObject rightMessagePrefab;
     [SerializeField] private Transform chatContent;
     [SerializeField] private Transform NotifOuter;
 
@@ -148,7 +149,16 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
 
     public void StartWaitAndLoad()
     {
-        StartCoroutine(waitAndLoad());
+        if (isJoined)
+        {
+            // Immediately load the message history if already joined
+            LoadMessageHistory(recipient);
+        }
+        else
+        {
+            // Otherwise, wait for `isJoined` to be true
+            StartCoroutine(waitAndLoad());
+        }
     }
 
     public void sendMessage()
@@ -178,6 +188,12 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
 
     public void LoadMessageHistory(string recipient)
     {
+        if (string.IsNullOrEmpty(recipient))
+        {
+            Debug.LogError("Recipient is empty.");
+            return;
+        }
+
         emptyMsgList(chatContent);
         Debug.LogError(recipient);
         var conversation = agoraChatClient.ChatManager.GetConversation(recipient, ConversationType.Chat);
@@ -211,21 +227,51 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
             Debug.LogError("No conversation found with the specified recipient.");
         }
     }
+    private float cumulativeHeight = 0f;
 
     public void displayMessage(string messageText, bool isSentMessage)
     {
-        GameObject messageInstance = Instantiate(chatMessagePrefab, chatContent);
+        GameObject messagePrefab = isSentMessage ? rightMessagePrefab : leftMessagePrefab;
+
+        GameObject messageInstance = Instantiate(messagePrefab, chatContent);
+
         TMP_Text nameText = messageInstance.transform.Find("NameText").GetComponent<TMP_Text>();
         TMP_Text messageTextComponent = messageInstance.transform.Find("MessageText").GetComponent<TMP_Text>();
-
         nameText.text = isSentMessage ? "You" : recipient;
         messageTextComponent.text = messageText;
 
         RectTransform rectTransform = messageInstance.GetComponent<RectTransform>();
-        rectTransform.pivot = isSentMessage ? new Vector2(1, 1) : new Vector2(0, 1);
-        rectTransform.localScale = Vector3.one;
+
+        if (isSentMessage)
+        {
+            rectTransform.pivot = new Vector2(1, 1);
+            rectTransform.anchorMin = new Vector2(1, 1);
+            rectTransform.anchorMax = new Vector2(1, 1);
+            rectTransform.anchoredPosition = new Vector2(-10, -cumulativeHeight); 
+            messageTextComponent.alignment = TextAlignmentOptions.Right;
+        }
+        else
+        {
+            rectTransform.pivot = new Vector2(0, 1); 
+            rectTransform.anchorMin = new Vector2(0, 1);
+            rectTransform.anchorMax = new Vector2(0, 1);
+            rectTransform.anchoredPosition = new Vector2(10, -cumulativeHeight); 
+            messageTextComponent.alignment = TextAlignmentOptions.Left;
+        }
+
+        cumulativeHeight += rectTransform.sizeDelta.y + 10f; 
+
+        LayoutRebuilder.ForceRebuildLayoutImmediate(chatContent.GetComponent<RectTransform>());
+
+        ScrollRect scrollRect = messageInstance.gameObject.GetComponentInParent<ScrollRect>();
+        ScrollToBottom(scrollRect );
     }
 
+    public void ScrollToBottom(ScrollRect scrollRect)
+    {
+        Canvas.ForceUpdateCanvases();  // Ensure layout is updated
+        scrollRect.verticalNormalizedPosition = 0f;  // Scroll to bottom
+    }
     public void emptyMsgList(Transform chatContent)
     {
         foreach (Transform child in chatContent)

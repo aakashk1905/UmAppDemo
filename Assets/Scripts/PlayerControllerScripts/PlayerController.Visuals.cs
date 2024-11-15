@@ -2,6 +2,7 @@ using UnityEngine;
 using Fusion;
 using TMPro;
 using UnityEngine.UI;
+using Unity.VisualScripting.Antlr3.Runtime.Tree;
 
 public partial class PlayerController : NetworkBehaviour
 {
@@ -14,12 +15,16 @@ public partial class PlayerController : NetworkBehaviour
 
     private void RenderName(string name, string email)
     {
-        
-        /*NewChat newChat = new NewChat();
-        newChat.recipient = email;*/
+        string currentUserEmail = UserDataManager.Instance.GetUserEmail();
+        string currentUsername = currentUserEmail?.Split('@')[0];
+
+        Debug.LogError(email + "email full" + currentUsername);
+
         GameObject PlayerInfoForList = Instantiate(playerInfoPrefab, NameListCanvas.transform);
         TextMeshProUGUI[] children = PlayerInfoForList.GetComponentsInChildren<TextMeshProUGUI>(true);
         PlayerInfoForList.name = email;
+
+        Button teleportBtn = PlayerInfoForList.transform.Find("TeleportBtn").GetComponent<Button>();
 
         foreach (TextMeshProUGUI child in children)
         {
@@ -37,10 +42,17 @@ public partial class PlayerController : NetworkBehaviour
         {
             if (btnMsg.CompareTag("msgBtn"))
             {
+
+                if (email == currentUsername)
+                {
+                    btnMsg.gameObject.SetActive(false);
+                    teleportBtn.gameObject.SetActive(false);
+
+                }
+
                 btnMsg.onClick.RemoveAllListeners();
                 btnMsg.onClick.AddListener(uiManager.EnableDmPage);
                 
-               /* Debug.Log("Listener added to button with tag 'msgBtn'");*/
                 listenerAdded = true;
                 break;
             }

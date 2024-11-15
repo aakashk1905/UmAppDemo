@@ -139,8 +139,21 @@ public class CarouselVideo : MonoBehaviour
     // Enable/Disable navigation buttons based on the current panel index.
     private void UpdateNavigationButtons()
     {
-        nextButton.interactable = (currentPanelIndex < panels.Count - 1);
-        previousButton.interactable = (currentPanelIndex > 0);
+        if (panels.Count > 1)
+        {
+            nextButton.gameObject.SetActive(true);
+            previousButton.gameObject.SetActive(true);
+
+            nextButton.interactable = (currentPanelIndex < panels.Count - 1);
+            previousButton.interactable = (currentPanelIndex > 0);
+        }
+        else
+        {
+            // Hide the buttons if there's only one panel or none
+            nextButton.gameObject.SetActive(false);
+            previousButton.gameObject.SetActive(false);
+        }
+
         currentPanelCount();
     }
 
