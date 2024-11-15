@@ -2,10 +2,12 @@ using UnityEngine;
 using Fusion;
 using TMPro;
 using UnityEngine.UI;
+using Unity.VisualScripting.Antlr3.Runtime.Tree;
 
 public partial class PlayerController : NetworkBehaviour
 {
     private GameObject targetIndicator;
+ 
 
     private void InitializeVisuals()
     {
@@ -13,19 +15,57 @@ public partial class PlayerController : NetworkBehaviour
 
     private void RenderName(string name, string email)
     {
-        GameObject textObject = new GameObject("TextMeshPro");
-        textObject.transform.SetParent(NameListCanvas.transform, false);
-        TextMeshProUGUI textMeshPro = textObject.AddComponent<TextMeshProUGUI>();
-        textMeshPro.text = name;
-        textMeshPro.fontSize = 18;
-        textMeshPro.alignment = TextAlignmentOptions.Center;
-        textMeshPro.enableAutoSizing = true;
+        string currentUserEmail = UserDataManager.Instance.GetUserEmail();
+        string currentUsername = currentUserEmail?.Split('@')[0];
 
-        RectTransform rectTransform = textObject.GetComponent<RectTransform>();
-        rectTransform.sizeDelta = new Vector2(200, 50);
+        Debug.LogError(email + "email full" + currentUsername);
 
-        Button button = textObject.AddComponent<Button>();
-        button.onClick.AddListener(() => OnTextClicked(email));
+        GameObject PlayerInfoForList = Instantiate(playerInfoPrefab, NameListCanvas.transform);
+        TextMeshProUGUI[] children = PlayerInfoForList.GetComponentsInChildren<TextMeshProUGUI>(true);
+        PlayerInfoForList.name = email;
+
+        Button teleportBtn = PlayerInfoForList.transform.Find("TeleportBtn").GetComponent<Button>();
+
+        foreach (TextMeshProUGUI child in children)
+        {
+            if (child.CompareTag("PlayerName"))
+            {
+                child.text = name;
+                break;
+            }
+        }
+
+        Button[] buttons = PlayerInfoForList.GetComponentsInChildren<Button>(true);
+        bool listenerAdded = false;
+
+        foreach (Button btnMsg in buttons)
+        {
+            if (btnMsg.CompareTag("msgBtn"))
+            {
+
+                if (email == currentUsername)
+                {
+                    btnMsg.gameObject.SetActive(false);
+                    teleportBtn.gameObject.SetActive(false);
+
+                }
+
+                btnMsg.onClick.RemoveAllListeners();
+                btnMsg.onClick.AddListener(uiManager.EnableDmPage);
+                
+                listenerAdded = true;
+                break;
+            }
+        }
+
+        if (!listenerAdded)
+        {
+            Debug.LogWarning("Button with tag 'msgBtn' not found or listener not added.");
+        }
+
+        PlayerInfoForList.transform.Find("Email").GetComponent<TextMeshProUGUI>().text = email;
+        //PlayerName.text = playerInfo.name.Value;
+        PlayerInfoForList.SetActive(true);
     }
 
     public void OnTextClicked(string s)

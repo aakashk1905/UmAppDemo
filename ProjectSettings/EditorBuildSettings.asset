@@ -9,6 +9,9 @@ EditorBuildSettings:
     path: Assets/Scenes/Login.unity
     guid: cb6e526af23c0eb4abe94294875a31b5
   - enabled: 1
+    path: Assets/Scenes/PlayMobile.unity
+    guid: 24b0317da324a534585b8aabdca4ab90
+  - enabled: 1
     path: Assets/Scenes/Play.unity
     guid: c05dde0ca8ca66441b41e33414b4d3f6
   m_configObjects: {}

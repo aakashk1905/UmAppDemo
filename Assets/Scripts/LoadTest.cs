@@ -76,7 +76,7 @@ public class LoadTest : MonoBehaviour
     }
      public void LoadScene()
     {
-        string sceneName = "Play";
+        string sceneName = "PlayMobile";
         SceneManager.LoadScene(sceneName);
     }
 }

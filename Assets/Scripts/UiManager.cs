@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public class UiManager : MonoBehaviour
@@ -7,6 +8,7 @@ public class UiManager : MonoBehaviour
     [SerializeField] GameObject settingsScreen;
     [SerializeField] GameObject activeUserScreen;
     [SerializeField] GameObject DmPage;
+    /*[SerializeField] NewChat newChat;*/
 
     public void EnableScreen()
     {
@@ -45,6 +47,9 @@ public class UiManager : MonoBehaviour
         if (DmPage.activeInHierarchy == false)
         {
             DmPage.SetActive(true);
+            //string emailId = GameObject.Find("Email").GetComponent<TextMeshProUGUI>().text;
+            //newChat.recipient = emailId;
+            //newChat.LoadMessageHistory(emailId);
         }
     }
 
