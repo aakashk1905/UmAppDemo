@@ -22,5 +22,7 @@ public class TextVisibilityToggle : MonoBehaviour
             passwordIP.contentType = TMP_InputField.ContentType.Standard;
             disableImage.gameObject.SetActive(false);
         }
+
+        passwordIP.ForceLabelUpdate();
     }
 }
