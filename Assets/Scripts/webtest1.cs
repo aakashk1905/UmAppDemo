@@ -5,8 +5,12 @@ using Gpm.WebView;
 public class WebViewController : MonoBehaviour
 {
     public GameObject prefabToSpawn;
+    [SerializeField] GameObject mobileViewPage, zoom, relocator;
     public void ShowUrlFullScreen()
     {
+        mobileViewPage.SetActive(false);
+        zoom.SetActive(false);
+        relocator.SetActive(false);
 #if !UNITY_ANDROID && !UNITY_IOS
         if (prefabToSpawn != null)
         {
@@ -77,6 +81,9 @@ public class WebViewController : MonoBehaviour
 
     public void Close()
     {
+        mobileViewPage.SetActive(true);
+        zoom.SetActive(true);
+        relocator.SetActive(true);
         Destroy(prefabToSpawn);
     }
      private void OnCallback(GpmWebViewCallback.CallbackType callbackType, string data, GpmWebViewError error)

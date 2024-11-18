@@ -1,11 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class TabNavigation : MonoBehaviour
 {
-    [SerializeField] InputField[] inputFields; 
+    [SerializeField] TMP_InputField[] inputFields; 
     private int currentFieldIndex = 0;
     [SerializeField] Button submitButton;
 

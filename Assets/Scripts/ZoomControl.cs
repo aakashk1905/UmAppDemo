@@ -12,40 +12,42 @@ public class ZoomControl : MonoBehaviour
     public Button zoomOutButton;
     public Button refocusButton;
     public Text zoomPercentageText;
-    public Transform player; 
+    public Transform player;
+
+    [SerializeField] GameObject dmScreen, ActiveUserPanel;
 
     void Start()
     {
-        // Add listeners for buttons
-        zoomInButton.onClick.AddListener(() => Zoom(0.5f));  // Zoom in
-        zoomOutButton.onClick.AddListener(() => Zoom(-0.5f));  // Zoom out
+        zoomInButton.onClick.AddListener(() => Zoom(0.5f)); 
+        zoomOutButton.onClick.AddListener(() => Zoom(-0.5f));  
         refocusButton.onClick.AddListener(Refocus);
     }
 
     void Update()
     {
-        if (Input.touchCount == 2)
+        if (!dmScreen.activeSelf && !ActiveUserPanel.activeSelf)
         {
-            Touch touchZero = Input.GetTouch(0);
-            Touch touchOne = Input.GetTouch(1);
-
-            Vector2 touchZeroPrevPos = touchZero.position - touchZero.deltaPosition;
-            Vector2 touchOnePrevPos = touchOne.position - touchOne.deltaPosition;
-
-            float prevMagnitude = (touchZeroPrevPos - touchOnePrevPos).magnitude;
-            float currentMagnitude = (touchZero.position - touchOne.position).magnitude;
-
-            float difference = currentMagnitude - prevMagnitude;
-
-            Zoom(difference * 0.01f);
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            if (scroll != 0f)
+            {
+                Zoom(scroll);
+            }
         }
-
-        Zoom(Input.GetAxis("Mouse ScrollWheel"));
     }
 
     void Zoom(float increment)
     {
-        Camera.main.orthographicSize = Mathf.Clamp(Camera.main.orthographicSize - increment, zoomOutMin, zoomOutMax);
+        float newSize = Mathf.Clamp(Camera.main.orthographicSize - increment, zoomOutMin, zoomOutMax);
+
+        float zoomFactor = Camera.main.orthographicSize / newSize;
+
+        Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+
+        Vector3 direction = mouseWorldPosition - Camera.main.transform.position;
+        Vector3 targetPosition = Camera.main.transform.position + direction * (1 - 1 / zoomFactor);
+
+        Camera.main.transform.position = targetPosition;
+        Camera.main.orthographicSize = newSize;
     }
 
     void Refocus()

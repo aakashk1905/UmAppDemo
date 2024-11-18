@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using TMPro;
 
 public class BackendIntegration : MonoBehaviour
 {
@@ -13,14 +14,14 @@ public class BackendIntegration : MonoBehaviour
     private const string PlayerPrefsLoginKey = "UserLoginData";
 
     [HideInInspector] public string _playerNameLoginTime;
-    public InputField registerNameInput;
-    public InputField registerEmailInput;
-    public InputField registerPasswordInput;
-    public InputField registerPhoneInput;
+    public TMP_InputField registerNameInput;
+    public TMP_InputField registerEmailInput;
+    public TMP_InputField registerPasswordInput;
+    public TMP_InputField registerPhoneInput;
     public Canvas loader;
    
-    public InputField loginEmailInput;
-    public InputField loginPasswordInput;
+    public TMP_InputField loginEmailInput;
+    public TMP_InputField loginPasswordInput;
 
     public GameObject _logInPage, _signUpPage;
 
