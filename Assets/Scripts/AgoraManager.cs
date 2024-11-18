@@ -44,8 +44,6 @@ public class AgoraManager : MonoBehaviour
 
     [SerializeField] CarouselVideo carouselVideo;
 
-    [SerializeField] Image DisableVideoImage, DisableMicImage, DisableSSImage;
-
     private void Awake()
     {
         if (Instance == null)
@@ -58,7 +56,7 @@ public class AgoraManager : MonoBehaviour
             return;
         }
         DontDestroyOnLoad(gameObject);
-       
+
     }
     public void Dispose()
     {
@@ -75,7 +73,7 @@ public class AgoraManager : MonoBehaviour
 
     private void Start()
     {
-        
+
         Bridges = new Dictionary<string, int>();
         InitRtcEngine();
         SetBasicConfiguration();
@@ -101,25 +99,21 @@ public class AgoraManager : MonoBehaviour
     }
     public void ToggleMute()
     {
-        Debug.LogError("Mute button Cicked" + isMuted);
         isMuted = !isMuted;
         RtcEngine.MuteLocalAudioStream(isMuted);
 
-        // Update the button sprite based on the mute state
         if (muteButton != null)
         {
             Image buttonImage = muteButton.GetComponent<Image>();
             if (isMuted)
             {
-                DisableMicImage.gameObject.SetActive(false);
-                buttonImage.sprite = micOnSprite; // Switch to Mic On sprite when muted
-                Log.Info("Mic is on");
+                buttonImage.sprite = micOffSprite ;
+             
             }
             else
             {
-                DisableMicImage.gameObject.SetActive(true);
-                buttonImage.sprite = micOffSprite; // Switch to Mic Off sprite when unmuted
-                Log.Info("Mic is off");
+                buttonImage.sprite = micOnSprite;
+              
             }
         }
         else
@@ -131,97 +125,21 @@ public class AgoraManager : MonoBehaviour
 
     public void ToggleVideo()
     {
+
         isVideoEnabled = !isVideoEnabled;
-
-        // Enable/Disable local video
         RtcEngine.EnableLocalVideo(isVideoEnabled);
-        RtcEngine.MuteLocalVideoStream(!isVideoEnabled);
-
-        uint localUid = 0; // Assuming local UID is 0; update if needed
-
-        // Update the placeholder for the local user
-        UpdateVideoPlaceholder(localUid, !isVideoEnabled);
-
-        // Notify remote users about the change
-        RpcSyncVideoState(localUid, isVideoEnabled);
-
-        // Toggle preview for local user
-        if (isVideoEnabled)
+        if (!isVideoEnabled)
         {
-            DisableVideoImage.gameObject.SetActive(false);
-            RtcEngine.StartPreview();
-            Log.Info("Video is on");
-        }
-        else
-        {
-            DisableVideoImage.gameObject.SetActive(true);
             RtcEngine.StopPreview();
             Log.Info("Video is off");
         }
-    }
-
-    public void OnUserMuteVideo(RtcConnection connection, uint uid, bool muted)
-    {
-        UpdateVideoPlaceholder(uid, muted);
-        Debug.Log($"User {uid} video muted: {muted}");
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    private void RpcSyncVideoState(uint uid, bool videoState)
-    {
-        UpdateVideoPlaceholder(uid, !videoState);
-    }
-
-    private IEnumerator EnsureVideoSurfaceExistsAndSync(uint uid, bool videoState)
-    {
-        GameObject videoSurface = null;
-        while (videoSurface == null)
-        {
-            videoSurface = GameObject.Find(uid.ToString());
-            yield return null; // Wait for the next frame
-        }
-
-        RpcSyncVideoState(uid, videoState);
-    }
-
-    private IEnumerator EnsureVideoSurfaceExists(uint uid, bool showPlaceholder)
-    {
-        GameObject videoSurface = GameObject.Find(uid.ToString());
-        if (videoSurface != null)
-        {
-            VideoOffPlaceHolder placeholder = videoSurface.GetComponent<VideoOffPlaceHolder>();
-            if (placeholder != null)
-            {
-                placeholder.ShowPlaceholder(showPlaceholder);
-            }
-        }
         else
         {
-            Debug.LogWarning($"Video surface not found for user: {uid}, ensuring creation...");
-            StartCoroutine(EnsureVideoSurfaceExistsAndSync(uid, showPlaceholder));
+            RtcEngine.StartPreview();
+            Log.Info("Video is on");
         }
-        return null;
+        //UpdateButtonTexts();
     }
-
-
-    private void UpdateVideoPlaceholder(uint uid, bool showPlaceholder)
-    {
-        GameObject videoSurface = GameObject.Find(uid.ToString());
-        if (videoSurface != null)
-        {
-            VideoOffPlaceHolder placeholder = videoSurface.GetComponent<VideoOffPlaceHolder>();
-            if (placeholder != null)
-            {
-                placeholder.ShowPlaceholder(showPlaceholder);
-            }
-        }
-        else
-        {
-            Debug.LogError($"Video surface not found for user: {uid}");
-        }
-    }
-
-
     private void SetBasicConfiguration()
     {
         RtcEngine.EnableAudio();
@@ -239,10 +157,10 @@ public class AgoraManager : MonoBehaviour
 
     public void CreateLocalVideoView()
     {
-       
+
         RtcEngine.StartPreview();
 
-        VideoSurface videoSurface = MakeImageSurface(0.ToString(),"mine");       
+        VideoSurface videoSurface = MakeImageSurface(0.ToString(), "mine");
         if (videoSurface != null)
         {
             videoSurface.SetForUser(0, "");
@@ -258,23 +176,21 @@ public class AgoraManager : MonoBehaviour
         ToggleVideo();
     }
 
-   public void ToggleScreenShare()
+    public void ToggleScreenShare()
     {
         if (isSharingScreen)
         {
-            DisableSSImage.gameObject.SetActive(true);
             StopScreenShare();
         }
         else
         {
-            DisableMicImage.gameObject.SetActive(false);
             StartScreenShare();
         }
     }
 
     private void StartScreenShare()
     {
-       
+
 #if UNITY_ANDROID || UNITY_IPHONE
             var parameters2 = new ScreenCaptureParameters2
             {
@@ -365,12 +281,12 @@ public class AgoraManager : MonoBehaviour
 
     public void AddPlayerToChannel(string channelName, PlayerController player)
     {
-        if(player.networkTableManager == null)
+        if (player.networkTableManager == null)
         {
             Debug.LogError("It is nulll");
         }
-       
-       // player.LogNetworkTable();
+
+        // player.LogNetworkTable();
         Debug.LogError("Adding " + player._playerID + " " + channelName);
         string tempToken = GetTokenForChannel(channelName, player);
         player.isInChannel = true;
@@ -424,10 +340,7 @@ public class AgoraManager : MonoBehaviour
         RtcEngine.JoinChannel(token, channelName, "", (uint)player._playerID);
         RtcEngine.StartPreview();
 
-        // Notify others about the local user's video state
-        RpcSyncVideoState((uint)player._playerID, isVideoEnabled);
     }
-
     [Rpc]
     public void UpdateChannelCount(int num)
     {
@@ -474,7 +387,7 @@ public class AgoraManager : MonoBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
 
     public string GenerateChannelName(string name)
-    { 
+    {
         string newChannelName = "user_" + name;
         return newChannelName;
     }
@@ -497,7 +410,7 @@ public class AgoraManager : MonoBehaviour
         return false;
     }
 
-    private VideoSurface MakeImageSurface(string goName,string mine="")
+    private VideoSurface MakeImageSurface(string goName, string mine = "")
     {
         carouselVideo.ActivateCarousel();
         GameObject gameObject = new GameObject();
@@ -509,9 +422,9 @@ public class AgoraManager : MonoBehaviour
 
         gameObject.name = goName;
         gameObject.AddComponent<RawImage>();
-        gameObject.tag = "VideoSurface"+mine;
+        gameObject.tag = "VideoSurface" + mine;
         gameObject.layer = 12;
-        
+
         if (canvas != null)
         {
             carouselVideo.currentPanel();
@@ -526,28 +439,13 @@ public class AgoraManager : MonoBehaviour
         gameObject.transform.Rotate(0f, 0.0f, 180.0f);
         gameObject.transform.localPosition = Vector3.zero;
         gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
-        gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(30,30);
-
-        // Add a placeholder image for when the video is off
-        GameObject placeholderImageObj = new GameObject("PlaceholderImage");
-        placeholderImageObj.transform.SetParent(gameObject.transform);
-        Image placeholderImage = placeholderImageObj.AddComponent<Image>();
-        placeholderImage.sprite = Resources.Load<Sprite>("PlaceholderImage"); // Load your image from Resources
-        placeholderImageObj.GetComponent<RectTransform>().sizeDelta = new Vector2(173, 173);
-        placeholderImageObj.transform.localPosition = Vector3.zero;
-
-        //Initialize placeholder state
-        VideoOffPlaceHolder placeholder = gameObject.AddComponent<VideoOffPlaceHolder>();
-        placeholder.SetPlaceholder(placeholderImageObj);
-        placeholder.ShowPlaceholder(true); // Default to visible
+        gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(30, 30);
 
         // Add a click event listener to toggle fullscreen
         Button btn = gameObject.AddComponent<Button>(); // Add a Button component for click detection
         btn.onClick.AddListener(() => carouselVideo.ToggleFullscreen(gameObject));
 
         VideoSurface videoSurface = gameObject.AddComponent<VideoSurface>();
-        videoSurface.gameObject.AddComponent<VideoOffPlaceHolder>().SetPlaceholder(placeholderImageObj);
-
         return videoSurface;
     }
 
@@ -566,7 +464,7 @@ public class AgoraManager : MonoBehaviour
 
         public override void OnLeaveChannel(RtcConnection connection, RtcStats stats)
         {
-            
+
             joinedUsers.Clear();
             GameObject[] videoViews = GameObject.FindGameObjectsWithTag("VideoSurface");
             foreach (GameObject videoView in videoViews)
@@ -585,20 +483,9 @@ public class AgoraManager : MonoBehaviour
                 {
                     videoSurface.SetForUser(uid, connection.channelId, VIDEO_SOURCE_TYPE.VIDEO_SOURCE_REMOTE);
                     videoSurface.SetEnable(true);
-
-                    // Show placeholder initially
-                    //StartCoroutine(EnsureVideoSurfaceExistsAndSync(uid, true));// Add this here
                 }
-                else
-                {
-                    Debug.LogError($"Failed to create video surface for user: {uid}");
-                }
-                joinedUsers.Add(uid);
             }
         }
-
-
-
 
         public override void OnUserOffline(RtcConnection connection, uint uid, USER_OFFLINE_REASON_TYPE reason)
         {
