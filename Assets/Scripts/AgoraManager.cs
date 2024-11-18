@@ -42,6 +42,10 @@ public class AgoraManager : MonoBehaviour
     [SerializeField] private Sprite micOffSprite;
     [SerializeField] private Button muteButton;
 
+    [SerializeField] private Image micDisableSprite;
+    [SerializeField] private Image videoDisableSprite;
+    [SerializeField] private Image ssDisableButton;
+
     [SerializeField] CarouselVideo carouselVideo;
 
     private void Awake()
@@ -108,12 +112,12 @@ public class AgoraManager : MonoBehaviour
             if (isMuted)
             {
                 buttonImage.sprite = micOffSprite ;
-             
+                micDisableSprite.gameObject.SetActive(true);   
             }
             else
             {
                 buttonImage.sprite = micOnSprite;
-              
+                micDisableSprite.gameObject.SetActive(false);
             }
         }
         else
@@ -132,11 +136,13 @@ public class AgoraManager : MonoBehaviour
         {
             RtcEngine.StopPreview();
             Log.Info("Video is off");
+            videoDisableSprite.gameObject.SetActive(true);
         }
         else
         {
             RtcEngine.StartPreview();
             Log.Info("Video is on");
+            videoDisableSprite.gameObject.SetActive(false);
         }
         //UpdateButtonTexts();
     }
@@ -181,10 +187,12 @@ public class AgoraManager : MonoBehaviour
         if (isSharingScreen)
         {
             StopScreenShare();
+            ssDisableButton.gameObject.SetActive(true);
         }
         else
         {
             StartScreenShare();
+            ssDisableButton.gameObject.SetActive(false);
         }
     }
 

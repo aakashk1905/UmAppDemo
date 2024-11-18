@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,7 +12,7 @@ public class ZoomControl : MonoBehaviour
     public Button zoomInButton;
     public Button zoomOutButton;
     public Button refocusButton;
-    public Text zoomPercentageText;
+    public TextMeshProUGUI zoomPercentageText;
     public Transform player;
 
     [SerializeField] GameObject dmScreen, ActiveUserPanel;
@@ -33,6 +34,8 @@ public class ZoomControl : MonoBehaviour
                 Zoom(scroll);
             }
         }
+
+        UpdateZoomPercentageText();
     }
 
     void Zoom(float increment)
@@ -49,6 +52,13 @@ public class ZoomControl : MonoBehaviour
         Camera.main.transform.position = targetPosition;
         Camera.main.orthographicSize = newSize;
     }
+
+    void UpdateZoomPercentageText()
+    {
+        float zoomPercentage = (zoomOutMax - Camera.main.orthographicSize) / (zoomOutMax - zoomOutMin) * 100f;
+        zoomPercentageText.text = Mathf.RoundToInt(zoomPercentage) + "%";
+    }
+
 
     void Refocus()
     {
