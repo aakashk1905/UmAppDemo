@@ -8,7 +8,7 @@ public class WebViewController : MonoBehaviour
     [SerializeField] public GameObject[] toHideObjects;
     public void ShowUrlFullScreen()
     {
-        for(int i = 0; i< toHideObjects.Length; i++)
+        for (int i = 0; i < toHideObjects.Length; i++)
         {
             toHideObjects[i].SetActive(false);
         }
@@ -19,7 +19,7 @@ public class WebViewController : MonoBehaviour
             Instantiate(prefabToSpawn, Vector3.zero, Quaternion.identity);
             return;
         }
-       
+
 #endif
         GpmWebViewRequest.Configuration config = new GpmWebViewRequest.Configuration()
         {
@@ -40,7 +40,7 @@ public class WebViewController : MonoBehaviour
                 contentMode = GpmWebViewContentMode.MOBILE
 #endif
         };
-        
+
 
         GpmWebView.ShowUrl(
             "https://upskillmafia.com/dashboard/mern?tab=tasks",
@@ -57,6 +57,67 @@ public class WebViewController : MonoBehaviour
             new List<string>() { "USER_CUSTOM_SCHEME" }
         );
     }
+
+    //    public void ShowUrlFullScreen()
+    //    {
+    //        // Hide the specified objects
+    //        for (int i = 0; i < toHideObjects.Length; i++)
+    //        {
+    //            toHideObjects[i].SetActive(false);
+    //        }
+
+    //#if !UNITY_ANDROID && !UNITY_IOS
+    //        if (prefabToSpawn != null)
+    //        {
+    //            Instantiate(prefabToSpawn, Vector3.zero, Quaternion.identity);
+    //            return;
+    //        }
+    //#endif
+
+    //        // Spawn the scroll view content object dynamically
+    //        GameObject spawnedContentParent = Instantiate(prefabToSpawn, Vector3.zero, Quaternion.identity);
+    //        Transform scrollViewContent = spawnedContentParent.transform.Find("Content"); // Ensure "Content" is properly referenced in the prefab hierarchy
+
+    //        if (scrollViewContent == null)
+    //        {
+    //            Debug.LogError("ScrollView Content not found in the spawned prefab!");
+    //            return;
+    //        }
+
+    //        // Locate the root object that contains the carousel panels
+    //        GameObject carouselRoot = GameObject.Find("UICanvas/CarouselBase/CarouselContainer"); // Update this with your carousel root name
+    //        if (carouselRoot == null)
+    //        {
+    //            Debug.LogError("Carousel root object not found!");
+    //            return;
+    //        }
+
+    //        // Get all panel GameObjects under the carousel root
+    //        Transform[] allPanels = carouselRoot.GetComponentsInChildren<Transform>(true); // Include inactive panels
+
+    //        // Collect and move all children from each panel
+    //        foreach (Transform panel in allPanels)
+    //        {
+    //            // Skip the root itself and only process actual panels
+    //            if (panel == carouselRoot.transform) continue;
+
+    //            // Iterate over each child (object) inside the current panel
+    //            foreach (Transform child in panel)
+    //            {
+    //                // Move the child object to the ScrollView Content
+    //                child.SetParent(scrollViewContent);
+
+    //                // Optionally reset the object's transform
+    //                child.localPosition = Vector3.zero;
+    //                child.localRotation = Quaternion.identity;
+    //                child.localScale = Vector3.one;
+    //            }
+    //        }
+
+    //        // Optionally, update the layout of the ScrollView Content
+    //       // LayoutRebuilder.ForceRebuildLayoutImmediate(scrollViewContent.GetComponent<RectTransform>());
+    //    }
+
 
     private void AddCookiesViaJavaScript()
     {
