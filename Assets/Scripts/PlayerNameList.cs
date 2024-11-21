@@ -5,7 +5,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using static Unity.Collections.Unicode;
 
 public class PlayerNameList : MonoBehaviour
 {
@@ -19,6 +18,7 @@ public class PlayerNameList : MonoBehaviour
     [SerializeField] private GameObject _RoomPanel;
     [SerializeField] private GameObject _SettingsPanel;
     private AgoraManager agora;
+    private PlayerController playerController;
     void Start()
     {
         _SettingsPanel.SetActive(false);
@@ -28,12 +28,21 @@ public class PlayerNameList : MonoBehaviour
         _playerDetOut.SetActive(false); 
         _overlay.GetComponent<Button>().onClick.AddListener(closePlayerListNamePanel);
         agora = AgoraManager.Instance;
+        
     }
- 
-    public async void Logout()
+    private void Update()
+    {
+        if(playerController == null)
+        {
+            playerController = PlayerController.Instance;
+        }
+    }
+
+    /*public async void Logout()
     {
         
         agora.RtcEngine.LeaveChannel();
+        playerController.BeforeDespawn();
         UserDataManager.Instance.LogOut();
         agora.Dispose();
 
@@ -42,14 +51,47 @@ public class PlayerNameList : MonoBehaviour
             NetworkRunner runner = NetworkRunner.Instances[0];
             if (runner != null && runner.IsRunning)
             {
-                PlayerListManager.Instance.RemovePlayerInfo(agora.playerId);
-
                 await runner.Shutdown();
             }
         }
         SceneManager.LoadScene("Login");
 
+    }*/
+
+    public async void Logout()
+    {
+        if (agora != null)
+        {
+            agora.RtcEngine.LeaveChannel();
+        }
+
+        if (playerController != null)
+        {
+            playerController.BeforeDespawn();
+        }
+
+        if (UserDataManager.Instance != null)
+        {
+            UserDataManager.Instance.LogOut();
+        }
+
+        if (agora != null)
+        {
+            agora.Dispose();
+        }
+
+        if (NetworkRunner.Instances.Count > 0)
+        {
+            NetworkRunner runner = NetworkRunner.Instances[0];
+            if (runner != null && runner.IsRunning)
+            {
+                await runner.Shutdown();
+            }
+        }
+
+        SceneManager.LoadScene("Login");
     }
+
 
     public void openPlayerListNamePanel()   
     {

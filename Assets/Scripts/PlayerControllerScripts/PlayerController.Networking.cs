@@ -10,9 +10,9 @@ public partial class PlayerController : NetworkBehaviour
     }
 
     [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-    public void RPC_RequestSetPlayerInfo(int id, string nickname)
+    public void RPC_RequestSetPlayerInfo(int id, string nickname, string myId)
     {
-        RPC_SetPlayerInfo(Object.InputAuthority, id, nickname);
+        RPC_SetPlayerInfo(Object.InputAuthority, id, nickname, myId);
     }
 
     [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]

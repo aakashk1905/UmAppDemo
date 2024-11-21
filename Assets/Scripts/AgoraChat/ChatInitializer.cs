@@ -6,6 +6,7 @@ using System.Collections;
 using UnityEngine.UI;
 using AgoraChat.MessageBody;
 using Newtonsoft.Json;
+using System.Threading.Tasks;
 
 public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerDelegate
 {
@@ -38,12 +39,11 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
             userId = UserDataManager.Instance.GetUserEmail().Split("@")[0];
             if (!isJoined)
             {
-                joinAgoraChat();
-               
+                joinAgoraChat();  
             }
         }
     }
-
+        
     private void setupChatSDK()
     {
         if (string.IsNullOrEmpty(appKey))
@@ -74,6 +74,7 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
             onSuccess: () =>
             {
                 Debug.LogError("Login successful");
+                
                 isJoined = true;
                 agoraChatClient.ChatManager.AddChatManagerDelegate(this);
             },
@@ -91,10 +92,15 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
     void OnApplicationQuit()
     {
         SaveAndLogout();
+       
     }
-   public void SaveAndLogout()
+
+   
+
+    public void SaveAndLogout()
     {
         SaveUnreadMessages();
+
         if (agoraChatClient != null)
         {
             agoraChatClient.Logout(true, new CallBack(
@@ -102,6 +108,10 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
                 onError: (code, desc) => Debug.LogError($"Logout failed: code {code}, desc: {desc}")
             ));
         }
+    }
+    private string GetPlayerPrefsKey(string key)
+    {
+        return "User_" + SystemInfo.deviceUniqueIdentifier + "_" + key;
     }
 
     public void Load()
@@ -125,24 +135,35 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
         recipient = "";
         currentRecipient = "";
     }
+    public void Clear()
+    {
+        UnreadMessages.Clear();
+        PlayerPrefs.DeleteAll();
+        PlayerPrefs.Save(); 
+        Debug.LogError("All PlayerPrefs cleared");
+    }
+
+
 
     private void SaveUnreadMessages()
     {
+        string key = "UnreadMessages";
         string json = JsonConvert.SerializeObject(UnreadMessages);
-        PlayerPrefs.SetString("UnreadMessages", json);
+        PlayerPrefs.SetString(GetPlayerPrefsKey(key), json);
         PlayerPrefs.Save();
         Debug.LogWarning("Unread messages saved.");
     }
     private void LoadUnreadMessages()
     {
-        if (PlayerPrefs.HasKey("UnreadMessages"))
+        string key = "UnreadMessages";
+        if (PlayerPrefs.HasKey(GetPlayerPrefsKey(key)))
         {
-            string json = PlayerPrefs.GetString("UnreadMessages");
+            string json = PlayerPrefs.GetString(GetPlayerPrefsKey(key));
             UnreadMessages = JsonConvert.DeserializeObject<Dictionary<string, int>>(json);
             Debug.LogWarning("Unread messages loaded.");
             UpdateOuterNotif();
         }
-        
+
     }
 
 
@@ -201,7 +222,7 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
         }
 
         emptyMsgList(chatContent);
-        Debug.LogError(recipient);
+        currentRecipient = recipient;
         var conversation = agoraChatClient.ChatManager.GetConversation(recipient, ConversationType.Chat);
 
         if (conversation != null)
@@ -219,8 +240,6 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
                     }
                    
                     Debug.Log("Loaded message history successfully.");
-                    UnreadMessages[recipient] = 0;
-                    UpdateOuterNotif();
                     ResetNotificationCounter(recipient);
                 },
                 onError: (code, desc) =>
@@ -299,6 +318,7 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
             {
                 UnreadMessages[msg.From] = UnreadMessages.GetValueOrDefault(msg.From, 0) + 1;
                 UpdateOuterNotif();
+                UpdateNotificationCounter();
                 Debug.LogError("New Message from " + msg.From);
             }
         }
@@ -308,10 +328,10 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
     {
         if (UnreadMessages.ContainsKey(userId))
         {
-            // Reset the unread message count for the user
-            UnreadMessages[userId] = 0;
+            UnreadMessages.Remove(userId);
 
-            // Update the UI to reflect the reset count
+            UpdateOuterNotif();
+
             GameObject playerObject = GameObject.Find(userId);
 
             if (playerObject != null)
@@ -395,7 +415,7 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
         yield return new WaitUntil(() => isJoined);
 
         int count = UnreadMessages.Count;
-        if (NotifOuter != null) // Check if NotifOuter is assigned
+        if (NotifOuter != null)
         {
             Transform Notif = NotifOuter.Find("Notif");
             if (Notif != null)
@@ -409,16 +429,13 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
                         notificationText.text = count.ToString();
                         Notif.gameObject.SetActive(true);
                     }
-                }
-                else
-                {
-                    Debug.LogWarning("NotifCount Not Found");
-                }
+                    if (count <= 0)
+                    {
+                        Notif.gameObject.SetActive(false);
+                    }
+                } 
             }
-            else
-            {
-                Debug.LogWarning("Notif Not Found");
-            }
+  
         }
         else
         {
@@ -427,39 +444,7 @@ public class ChatInitializer : MonoBehaviour, IConnectionDelegate, IChatManagerD
     }
 
 
-    /*public void UpdateOuterNotif()
-    {
-        int count = UnreadMessages.Count;
-        if (!NotifOuter)
-        {
-            Transform Notif = NotifOuter.Find("Notif");
-            if (Notif != null)
-            {
-                Transform msgBtn = Notif.transform.Find("NotifCount");
-                if (msgBtn != null)
-                {
-                    TextMeshProUGUI notificationText = msgBtn.GetComponent<TextMeshProUGUI>();
-                    if (notificationText != null)
-                    {
-                        notificationText.text = count.ToString();
-                        Notif.gameObject.SetActive(true);
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning("NotifCount Not FOund");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("Notif Not FOund");
-            }
-        }
-        else
-        {
-            Debug.LogWarning("NotifOuter Not Found");
-        }
-    }*/
+
     public void OnConnected()
     {
         throw new System.NotImplementedException();

@@ -31,6 +31,13 @@ public class UiManager : MonoBehaviour
         if (activeUserScreen.activeInHierarchy == false)
         {
             activeUserScreen.SetActive(true);
+            ChatInitializer chatInitializer = activeUserScreen.GetComponent<ChatInitializer>();
+
+            if (chatInitializer != null)
+            {
+                chatInitializer.UpdateNotificationCounter(); 
+            }
+            
         }
     }
 

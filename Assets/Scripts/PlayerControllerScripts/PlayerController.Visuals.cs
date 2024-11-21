@@ -7,7 +7,6 @@ using Unity.VisualScripting.Antlr3.Runtime.Tree;
 public partial class PlayerController : NetworkBehaviour
 {
     private GameObject targetIndicator;
- 
 
     private void InitializeVisuals()
     {
@@ -66,6 +65,8 @@ public partial class PlayerController : NetworkBehaviour
         PlayerInfoForList.transform.Find("Email").GetComponent<TextMeshProUGUI>().text = email;
         //PlayerName.text = playerInfo.name.Value;
         PlayerInfoForList.SetActive(true);
+
+        chatInitializer.UpdateNotificationCounter();
     }
 
     public void OnTextClicked(string s)
@@ -98,10 +99,8 @@ public partial class PlayerController : NetworkBehaviour
             else
             {
                 Debug.LogError("TMP_Text component not found on player object.");
-            }
-            
-                StartCoroutine(WaitForPlayerListManager());
-            
+            } 
+            StartCoroutine(WaitForPlayerListManager());  
         }
     }
    
