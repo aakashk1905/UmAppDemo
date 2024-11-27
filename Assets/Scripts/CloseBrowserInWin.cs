@@ -6,11 +6,13 @@ using UnityEngine;
 public class CloseBrowserInWin : MonoBehaviour
 {
     [SerializeField] GameObject gameObject;
+    [SerializeField] VerticalVideoView verticalVideoView;
 
 
 
    public void close()
     {
+        verticalVideoView.OnDestroy();
         GameObject webTestObject = GameObject.Find("WebTest");
 
         if (webTestObject == null)

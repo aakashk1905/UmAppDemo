@@ -493,6 +493,18 @@ public class AgoraManager : MonoBehaviour
                     videoSurface.SetEnable(true);
                 }
             }
+
+            VerticalVideoView verticalVideoView = GameObject.FindObjectOfType<VerticalVideoView>();
+
+            if (verticalVideoView != null)
+            {
+                // Trigger the UpdateScrollView method or any other functionality
+                verticalVideoView.UpdateScrollView();
+            }
+            else
+            {
+                Debug.LogWarning("VerticalVideoView component not found in the scene.");
+            }
         }
 
         public override void OnUserOffline(RtcConnection connection, uint uid, USER_OFFLINE_REASON_TYPE reason)

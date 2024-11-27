@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,8 +18,8 @@ public class ZoomControl : MonoBehaviour
 
     void Start()
     {
-        zoomInButton.onClick.AddListener(() => Zoom(0.5f)); 
-        zoomOutButton.onClick.AddListener(() => Zoom(-0.5f));  
+        zoomInButton.onClick.AddListener(() => Zoom(0.5f));
+        zoomOutButton.onClick.AddListener(() => Zoom(-0.5f));
         refocusButton.onClick.AddListener(Refocus);
     }
 
@@ -28,10 +27,24 @@ public class ZoomControl : MonoBehaviour
     {
         if (!dmScreen.activeSelf && !ActiveUserPanel.activeSelf)
         {
-            float scroll = Input.GetAxis("Mouse ScrollWheel");
-            if (scroll != 0f)
+            if (Input.touchCount == 2) // Handle pinch-to-zoom for phones
             {
-                Zoom(scroll);
+                Touch touch0 = Input.GetTouch(0);
+                Touch touch1 = Input.GetTouch(1);
+
+                // Calculate the distance between two touches in the current and previous frame
+                float prevTouchDeltaMag = (touch0.position - touch0.deltaPosition - (touch1.position - touch1.deltaPosition)).magnitude;
+                float touchDeltaMag = (touch0.position - touch1.position).magnitude;
+
+                // Find the difference in distances
+                float deltaMagnitudeDiff = prevTouchDeltaMag - touchDeltaMag;
+
+                // Adjust zoom based on the difference
+                Zoom(deltaMagnitudeDiff * 0.01f); // Scale factor to make zoom smoother
+            }
+            else if (Input.GetAxis("Mouse ScrollWheel") != 0f) // Handle mouse zoom for desktops
+            {
+                Zoom(Input.GetAxis("Mouse ScrollWheel"));
             }
         }
 
@@ -58,7 +71,6 @@ public class ZoomControl : MonoBehaviour
         float zoomPercentage = (zoomOutMax - Camera.main.orthographicSize) / (zoomOutMax - zoomOutMin) * 100f;
         zoomPercentageText.text = Mathf.RoundToInt(zoomPercentage) + "%";
     }
-
 
     void Refocus()
     {

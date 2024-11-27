@@ -131,7 +131,7 @@ public partial class PlayerController : NetworkBehaviour
             _agoraManager.CreateLocalVideoView();
         }
         StartCoroutine(SetList());
-        chatInitializer = GameObject.Find("ChatInitializer").GetComponent<ChatInitializer>();
+        chatInitializer = GameObject. Find("ChatInitializer").GetComponent<ChatInitializer>();
     }
 
     private IEnumerator WaitForPlayerListManager()
