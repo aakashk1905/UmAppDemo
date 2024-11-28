@@ -144,9 +144,6 @@ public class WebViewController : MonoBehaviour
 
     public void Close()
     {
-        //mobileViewPage.SetActive(true);
-        //zoom.SetActive(true);
-        //relocator.SetActive(true);
         Destroy(prefabToSpawn);
         Debug.Log("Acitve");
     }

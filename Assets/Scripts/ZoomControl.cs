@@ -53,7 +53,8 @@ public class ZoomControl : MonoBehaviour
 
     void Zoom(float increment)
     {
-        float newSize = Mathf.Clamp(Camera.main.orthographicSize - increment, zoomOutMin, zoomOutMax);
+        // Reverse the increment to match the expected zoom behavior
+        float newSize = Mathf.Clamp(Camera.main.orthographicSize + increment, zoomOutMin, zoomOutMax);
 
         float zoomFactor = Camera.main.orthographicSize / newSize;
 
@@ -65,6 +66,7 @@ public class ZoomControl : MonoBehaviour
         Camera.main.transform.position = targetPosition;
         Camera.main.orthographicSize = newSize;
     }
+
 
     void UpdateZoomPercentageText()
     {

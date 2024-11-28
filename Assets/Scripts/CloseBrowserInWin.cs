@@ -29,9 +29,14 @@ public class CloseBrowserInWin : MonoBehaviour
             else
             {
                 Debug.Log("WebViewController successfully found.");
-                foreach (GameObject go in webViewController.toHideObjects)
+                //foreach (GameObject go in webViewController.toHideObjects)
+                //{
+                //    go.SetActive(true);
+                //}
+
+                for (int i = 0; i < webViewController.toHideObjects.Length; i++)
                 {
-                    go.SetActive(true);
+                    webViewController.toHideObjects[i].gameObject.SetActive(true);
                 }
             }
         }
