@@ -8,8 +8,6 @@ public class CloseBrowserInWin : MonoBehaviour
     [SerializeField] GameObject gameObject;
     [SerializeField] VerticalVideoView verticalVideoView;
 
-
-
    public void close()
     {
         verticalVideoView.OnDestroy();
@@ -29,11 +27,6 @@ public class CloseBrowserInWin : MonoBehaviour
             else
             {
                 Debug.Log("WebViewController successfully found.");
-                //foreach (GameObject go in webViewController.toHideObjects)
-                //{
-                //    go.SetActive(true);
-                //}
-
                 for (int i = 0; i < webViewController.toHideObjects.Length; i++)
                 {
                     webViewController.toHideObjects[i].gameObject.SetActive(true);

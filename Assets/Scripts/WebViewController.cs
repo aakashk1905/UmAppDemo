@@ -8,10 +8,7 @@ public class WebViewController : MonoBehaviour
     [SerializeField] public GameObject[] toHideObjects;
     public void ShowUrlFullScreen()
     {
-        for (int i = 0; i < toHideObjects.Length; i++)
-        {
-            toHideObjects[i].SetActive(false);
-        }
+        SetViewOfOtherObjects(false);
 
 #if !UNITY_ANDROID && !UNITY_IOS
         if (prefabToSpawn != null)
@@ -49,8 +46,7 @@ public class WebViewController : MonoBehaviour
             {
                 if (callback == GpmWebViewCallback.CallbackType.PageLoad)
                 {
-                    // Add cookies after the page has loaded
-                    AddCookiesViaJavaScript();
+                   
                 }
                 OnCallback(callback, data, error);
             },
@@ -119,33 +115,17 @@ public class WebViewController : MonoBehaviour
     //    }
 
 
-    private void AddCookiesViaJavaScript()
-    {
-        string userEmail = UserDataManager.Instance.GetUserEmail();
-        string userName = UserDataManager.Instance.GetUserName();
-
-        string script = $@"
-            function setCookie(name, value, days) {{
-                var expires = '';
-                if (days) {{
-                    var date = new Date();
-                    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-                    expires = '; expires=' + date.toUTCString();
-                }}
-                document.cookie = name + '=' + (value || '') + expires + '; path=/';
-            }}
-            setCookie('user_email', '{userEmail}', 7);
-            setCookie('user_name', '{userName}', 7);
-        ";
-
-
-        GpmWebView.ExecuteJavaScript(script);
-    }
-
     public void Close()
     {
         Destroy(prefabToSpawn);
-        Debug.Log("Acitve");
+    }
+
+    public void SetViewOfOtherObjects(bool val)
+    {
+        for (int i = 0; i < toHideObjects.Length; i++)
+        {
+            toHideObjects[i].SetActive(val);
+        }
     }
      private void OnCallback(GpmWebViewCallback.CallbackType callbackType, string data, GpmWebViewError error)
     {
@@ -171,6 +151,7 @@ public class WebViewController : MonoBehaviour
                 else
                 {
                     Debug.LogError("WebView closed successfully.");
+                    SetViewOfOtherObjects(true);
                 }
                 break;
             case GpmWebViewCallback.CallbackType.PageStarted:
@@ -223,6 +204,7 @@ public class WebViewController : MonoBehaviour
 #if UNITY_ANDROID
             case GpmWebViewCallback.CallbackType.BackButtonClose:
                 Debug.Log("WebView closed via back button.");
+                SetViewOfOtherObjects(true);
                 break;
 #endif
             default:
