@@ -41,12 +41,16 @@ public class PlayerInfoPrefabController : MonoBehaviour
 
     private void newMsgIndicator(string email, int newMsgCount)
     {
-        Transform playerInfo = GameObject.Find(email).GetComponent<Transform>();
-        foreach (Transform child in playerInfo)
+        GameObject playerObj = GameObject.Find(email);
+        if (playerObj != null)
         {
-            if (child.name == "NotificationCount")
+            Transform playerInfo = playerObj.GetComponent<Transform>();
+            foreach (Transform child in playerInfo)
             {
-                child.GetComponent<TextMeshProUGUI>().text = newMsgCount.ToString();
+                if (child.name == "NotificationCount")
+                {
+                    child.GetComponent<TextMeshProUGUI>().text = newMsgCount.ToString();
+                }
             }
         }
     }

@@ -2,21 +2,25 @@ using Fusion;
 using Fusion.Addons.Physics;
 using System.Collections;
 using System.Linq;
+using System.Reflection;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Threading.Tasks;
 
 public partial class PlayerController : NetworkBehaviour
 {
     [SerializeField] private NetworkRigidbody2D _rb;
     [SerializeField] private LayerMask raycastMask;
     [SerializeField] private float moveSpeed = 1.2f;
+    [SerializeField] private Button despawnButton;
     public Sprite[] _sprites;
 
     [Networked, OnChangedRender(nameof(OnNameChanged))] public NetworkString<_128> PlayerName { get; set; } = "";
     [Networked] public int _playerID { get; set; }
     public PlayerListManager playerListManager;
+    [Networked] public NetworkString<_64> myId { get; set; }
+
     public Animator animator;
     public CharacterChoose choose;
     public SpriteRenderer _player;
@@ -29,18 +33,45 @@ public partial class PlayerController : NetworkBehaviour
     public static PlayerController Instance { get;set; }
 
     private UiManager uiManager;
+    private ChatInitializer chatInitializer;
 
     private void Awake()
     {
         InitializeComponents();
         uiManager = FindAnyObjectByType<UiManager>();
+        
+    }
+
+    private void OnApplicationQuit()
+    {
+         BeforeDespawn();
+    }
+
+  
+     public void BeforeDespawn()
+     {
+         if (chatInitializer != null && Object.HasInputAuthority)
+         {
+             chatInitializer.SaveAndLogout();
+         }
+         if (Instance == this && Object.HasInputAuthority)
+         {
+             Instance = null;
+         }
+     }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_RemovePlayerInfo(string playerId)
+    {
+        if (PlayerListManager.Instance != null)
+        {  
+            playerListManager.RemovePlayerInfo(playerId);
+        }
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
-        PlayerListManager.Instance.RemovePlayerInfo(_playerID.ToString());
         base.Despawned(runner, hasState);
-
     }
     public override void Spawned()
     {
@@ -48,12 +79,15 @@ public partial class PlayerController : NetworkBehaviour
         {
             Instance = this;
         }
+        _agoraManager = AgoraManager.Instance;
+       
+        
+
         moveSpeed = 1.2f;
 
         if (Object.HasInputAuthority)
         {
-            LoadPlayerData();
-            
+            LoadPlayerData();  
         }
 #if !UNITY_ANDROID && !UNITY_IOS
         Destroy(movementJoystick);
@@ -70,7 +104,7 @@ public partial class PlayerController : NetworkBehaviour
         InitializeChannelManager();
         InitializeVisuals();
 
-        _agoraManager = AgoraManager.Instance;
+        
         networkTableManager = NetworkTableManager.Instance;
         _networkedDSU = NetworkedDSU.Instance;
         playerListManager = PlayerListManager.Instance;
@@ -79,18 +113,25 @@ public partial class PlayerController : NetworkBehaviour
         {
             _networkedDSU.MakeSet(Object.InputAuthority);
         }
-        //NameListCanvas = GameObject.FindGameObjectWithTag("PlayerNameList");
         NameListCanvas = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(obj => obj.CompareTag("PlayerNameList"));
+       
         playerInfoPrefab = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(obj => obj.CompareTag("PlayerInfo"));
-        /*TextMeshProUGUI PlayerNametxt;*/
 
-        /*Debug.LogError(NameListCanvas);*/
+       /* if (despawnButton != null && Object.HasInputAuthority)
+        {
+            despawnButton.gameObject.SetActive(true);
+            despawnButton.onClick.RemoveListener(BeforeDespawn);
+            despawnButton.onClick.AddListener(this.BeforeDespawn);
+  
+        }*/
+
         UpdateSprite();
         if (Object.HasInputAuthority)
         {
             _agoraManager.CreateLocalVideoView();
         }
         StartCoroutine(SetList());
+        chatInitializer = GameObject. Find("ChatInitializer").GetComponent<ChatInitializer>();
     }
 
     private IEnumerator WaitForPlayerListManager()
@@ -100,13 +141,13 @@ public partial class PlayerController : NetworkBehaviour
             yield return null;
         }
         if(Object.HasInputAuthority)
-         PlayerListManager.Instance.AddPlayerInfo(PlayerName.Value, UserDataManager.Instance.GetUserEmail().Split("@")[0].ToString());
+         playerListManager.AddPlayerInfo(PlayerName.Value, UserDataManager.Instance.GetUserEmail().Split("@")[0].ToString());
         
     }
 
-        private IEnumerator SetList()
+    private IEnumerator SetList()
     {
-        while (playerListManager == null)
+        while (playerListManager == null && NameListCanvas == null)
         {
             yield return null;
         }
@@ -116,10 +157,14 @@ public partial class PlayerController : NetworkBehaviour
             PlayerListManager.OnPlayerListUpdated += UpdateNameList;
         }
     }
-
+   
     private void UpdateNameList()
     {
+        if (NameListCanvas == null)return;
+        
         if (!Object.HasInputAuthority) return;
+
+        
 
         foreach (Transform child in NameListCanvas.transform)
         {
@@ -150,7 +195,9 @@ public partial class PlayerController : NetworkBehaviour
         if (UserDataManager.Instance != null && UserDataManager.Instance.CurrentUser != null)
         {
             string name = UserDataManager.Instance.GetUserName();
-            RPC_RequestSetPlayerInfo(Object.InputAuthority.PlayerId, name);
+            _agoraManager.setPlayer(Object.InputAuthority.PlayerId.ToString());
+            RPC_RequestSetPlayerInfo(Object.InputAuthority.PlayerId, name, UserDataManager.Instance.GetUserEmail().Split("@")[0].ToString());
+            
         }
     }
 
@@ -158,15 +205,17 @@ public partial class PlayerController : NetworkBehaviour
     {
         HandleMovement();
         HandleTeleportation();
+        
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_SetPlayerInfo(PlayerRef playerRef, int id, string nickname)
+    public void RPC_SetPlayerInfo(PlayerRef playerRef, int id, string nickname, string my)
     {
         if (Object.InputAuthority == playerRef)
         {
             _playerID = id;
             PlayerName = nickname;
+            myId = my;
         }
     }
 

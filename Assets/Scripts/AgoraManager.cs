@@ -7,11 +7,8 @@ using System.Collections;
 using Agora_RTC_Plugin.API_Example;
 using UnityEngine.UI;
 using WebSocketSharp;
-/*using static Unity.Collections.Unicode;
-using UnityEngine.SocialPlatforms.Impl;
-using UnityEngine.Video;
-using TMPro;
-using UnityEditor.Rendering.LookDev;*/
+using AgoraChat;
+
 
 public class AgoraManager : MonoBehaviour
 {
@@ -21,6 +18,7 @@ public class AgoraManager : MonoBehaviour
     [SerializeField] private GameObject canvas;
     [SerializeField] private string tokenBase = "https://agoraapi.vercel.app/token";
     private bool isMuted = false;
+    public string playerId;
     private bool isVideoEnabled = true;
     private bool isSharingScreen = false;
     public bool IsInitialized { get; private set; } = false;
@@ -30,7 +28,10 @@ public class AgoraManager : MonoBehaviour
     public string _channelName = "";
 
     private Dictionary<string, HashSet<uint>> channelUsers = new Dictionary<string, HashSet<uint>>();
-
+    public void setPlayer(string pl)
+    {
+        playerId = pl;
+    }
 
     public CONNECTION_STATE_TYPE connectionState = CONNECTION_STATE_TYPE.CONNECTION_STATE_DISCONNECTED;
     [Networked] public Dictionary<string, int> Bridges { get; set; }
@@ -40,6 +41,10 @@ public class AgoraManager : MonoBehaviour
     [SerializeField] private Sprite micOnSprite;
     [SerializeField] private Sprite micOffSprite;
     [SerializeField] private Button muteButton;
+
+    [SerializeField] private Image micDisableSprite;
+    [SerializeField] private Image videoDisableSprite;
+    [SerializeField] private Image ssDisableButton;
 
     [SerializeField] CarouselVideo carouselVideo;
 
@@ -55,11 +60,24 @@ public class AgoraManager : MonoBehaviour
             return;
         }
         DontDestroyOnLoad(gameObject);
+
+    }
+    public void Dispose()
+    {
+        if (RtcEngine != null)
+        {
+            RtcEngine.LeaveChannel();
+            RtcEngine.Dispose();
+            RtcEngine = null;
+        }
+
+        Instance = null;
+        Destroy(gameObject);
     }
 
     private void Start()
     {
-        
+
         Bridges = new Dictionary<string, int>();
         InitRtcEngine();
         SetBasicConfiguration();
@@ -85,23 +103,21 @@ public class AgoraManager : MonoBehaviour
     }
     public void ToggleMute()
     {
-        Debug.LogError("Mute button Cicked" + isMuted);
         isMuted = !isMuted;
         RtcEngine.MuteLocalAudioStream(isMuted);
 
-        // Update the button sprite based on the mute state
         if (muteButton != null)
         {
             Image buttonImage = muteButton.GetComponent<Image>();
             if (isMuted)
             {
-                buttonImage.sprite = micOnSprite; // Switch to Mic On sprite when muted
-                Log.Info("Mic is on");
+                buttonImage.sprite = micOffSprite ;
+                micDisableSprite.gameObject.SetActive(true);   
             }
             else
             {
-                buttonImage.sprite = micOffSprite; // Switch to Mic Off sprite when unmuted
-                Log.Info("Mic is off");
+                buttonImage.sprite = micOnSprite;
+                micDisableSprite.gameObject.SetActive(false);
             }
         }
         else
@@ -113,18 +129,20 @@ public class AgoraManager : MonoBehaviour
 
     public void ToggleVideo()
     {
-       
+
         isVideoEnabled = !isVideoEnabled;
         RtcEngine.EnableLocalVideo(isVideoEnabled);
         if (!isVideoEnabled)
         {
             RtcEngine.StopPreview();
             Log.Info("Video is off");
+            videoDisableSprite.gameObject.SetActive(true);
         }
         else
         {
             RtcEngine.StartPreview();
             Log.Info("Video is on");
+            videoDisableSprite.gameObject.SetActive(false);
         }
         //UpdateButtonTexts();
     }
@@ -145,10 +163,10 @@ public class AgoraManager : MonoBehaviour
 
     public void CreateLocalVideoView()
     {
-       
+
         RtcEngine.StartPreview();
 
-        VideoSurface videoSurface = MakeImageSurface(0.ToString(),"mine");       
+        VideoSurface videoSurface = MakeImageSurface(0.ToString(), "mine");
         if (videoSurface != null)
         {
             videoSurface.SetForUser(0, "");
@@ -160,24 +178,27 @@ public class AgoraManager : MonoBehaviour
             videoSurface.SetEnable(true);
         }
 
-
+        ToggleMute();
+        ToggleVideo();
     }
 
-   public void ToggleScreenShare()
+    public void ToggleScreenShare()
     {
         if (isSharingScreen)
         {
             StopScreenShare();
+            ssDisableButton.gameObject.SetActive(true);
         }
         else
         {
             StartScreenShare();
+            ssDisableButton.gameObject.SetActive(false);
         }
     }
 
     private void StartScreenShare()
     {
-       
+
 #if UNITY_ANDROID || UNITY_IPHONE
             var parameters2 = new ScreenCaptureParameters2
             {
@@ -268,12 +289,12 @@ public class AgoraManager : MonoBehaviour
 
     public void AddPlayerToChannel(string channelName, PlayerController player)
     {
-        if(player.networkTableManager == null)
+        if (player.networkTableManager == null)
         {
             Debug.LogError("It is nulll");
         }
-       
-       // player.LogNetworkTable();
+
+        // player.LogNetworkTable();
         Debug.LogError("Adding " + player._playerID + " " + channelName);
         string tempToken = GetTokenForChannel(channelName, player);
         player.isInChannel = true;
@@ -326,7 +347,7 @@ public class AgoraManager : MonoBehaviour
     {
         RtcEngine.JoinChannel(token, channelName, "", (uint)player._playerID);
         RtcEngine.StartPreview();
-   
+
     }
     [Rpc]
     public void UpdateChannelCount(int num)
@@ -373,8 +394,8 @@ public class AgoraManager : MonoBehaviour
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
 
-    public string GenerateChannelName(String name)
-    { 
+    public string GenerateChannelName(string name)
+    {
         string newChannelName = "user_" + name;
         return newChannelName;
     }
@@ -397,7 +418,7 @@ public class AgoraManager : MonoBehaviour
         return false;
     }
 
-    private VideoSurface MakeImageSurface(string goName,string mine="")
+    private VideoSurface MakeImageSurface(string goName, string mine = "")
     {
         carouselVideo.ActivateCarousel();
         GameObject gameObject = new GameObject();
@@ -409,9 +430,9 @@ public class AgoraManager : MonoBehaviour
 
         gameObject.name = goName;
         gameObject.AddComponent<RawImage>();
-        gameObject.tag = "VideoSurface"+mine;
+        gameObject.tag = "VideoSurface" + mine;
         gameObject.layer = 12;
-        
+
         if (canvas != null)
         {
             carouselVideo.currentPanel();
@@ -426,7 +447,7 @@ public class AgoraManager : MonoBehaviour
         gameObject.transform.Rotate(0f, 0.0f, 180.0f);
         gameObject.transform.localPosition = Vector3.zero;
         gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
-        gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(30,30);
+        gameObject.GetComponent<RectTransform>().sizeDelta = new Vector2(30, 30);
 
         // Add a click event listener to toggle fullscreen
         Button btn = gameObject.AddComponent<Button>(); // Add a Button component for click detection
@@ -451,7 +472,7 @@ public class AgoraManager : MonoBehaviour
 
         public override void OnLeaveChannel(RtcConnection connection, RtcStats stats)
         {
-            
+
             joinedUsers.Clear();
             GameObject[] videoViews = GameObject.FindGameObjectsWithTag("VideoSurface");
             foreach (GameObject videoView in videoViews)
@@ -471,6 +492,18 @@ public class AgoraManager : MonoBehaviour
                     videoSurface.SetForUser(uid, connection.channelId, VIDEO_SOURCE_TYPE.VIDEO_SOURCE_REMOTE);
                     videoSurface.SetEnable(true);
                 }
+            }
+
+            VerticalVideoView verticalVideoView = GameObject.FindObjectOfType<VerticalVideoView>();
+
+            if (verticalVideoView != null)
+            {
+                // Trigger the UpdateScrollView method or any other functionality
+                verticalVideoView.UpdateScrollView();
+            }
+            else
+            {
+                Debug.LogWarning("VerticalVideoView component not found in the scene.");
             }
         }
 

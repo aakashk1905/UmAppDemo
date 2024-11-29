@@ -18,8 +18,7 @@ public class PlayerNameList : MonoBehaviour
     [SerializeField] private GameObject _RoomPanel;
     [SerializeField] private GameObject _SettingsPanel;
     private AgoraManager agora;
-
-
+    private PlayerController playerController;
     void Start()
     {
         _SettingsPanel.SetActive(false);
@@ -29,25 +28,71 @@ public class PlayerNameList : MonoBehaviour
         _playerDetOut.SetActive(false); 
         _overlay.GetComponent<Button>().onClick.AddListener(closePlayerListNamePanel);
         agora = AgoraManager.Instance;
+        
     }
-    public void Logout()
+    private void Update()
     {
-    
+        if(playerController == null)
+        {
+            playerController = PlayerController.Instance;
+        }
+    }
+
+    /*public async void Logout()
+    {
+        
+        agora.RtcEngine.LeaveChannel();
+        playerController.BeforeDespawn();
         UserDataManager.Instance.LogOut();
+        agora.Dispose();
 
         if (NetworkRunner.Instances.Count > 0)
         {
             NetworkRunner runner = NetworkRunner.Instances[0];
             if (runner != null && runner.IsRunning)
             {
-                runner.Shutdown();
+                await runner.Shutdown();
             }
         }
-        agora.RtcEngine.LeaveChannel(); ;
-
         SceneManager.LoadScene("Login");
 
+    }*/
+
+    public async void Logout()
+    {
+        if (agora != null)
+        {
+            agora.RtcEngine.LeaveChannel();
+        }
+
+        if (playerController != null)
+        {
+            playerController.BeforeDespawn();
+        }
+
+        if (UserDataManager.Instance != null)
+        {
+            UserDataManager.Instance.LogOut();
+        }
+
+        if (agora != null)
+        {
+            agora.Dispose();
+        }
+
+        if (NetworkRunner.Instances.Count > 0)
+        {
+            NetworkRunner runner = NetworkRunner.Instances[0];
+            if (runner != null && runner.IsRunning)
+            {
+                await runner.Shutdown();
+            }
+        }
+
+        SceneManager.LoadScene("Login");
     }
+
+
     public void openPlayerListNamePanel()   
     {
        
@@ -97,5 +142,5 @@ public class PlayerNameList : MonoBehaviour
     {
         _SettingsPanel.SetActive(false);
     }
-    
 }
+

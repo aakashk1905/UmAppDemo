@@ -9,6 +9,7 @@ public class PlayerSp : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     [SerializeField] NetworkPrefabRef playerNetworkPrefab = NetworkPrefabRef.Empty;
     private Dictionary<PlayerRef, NetworkObject> currentSpawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
     private string roomName;
+    PlayerController playerController;
 
     public override void Spawned()
     {
@@ -25,6 +26,13 @@ public class PlayerSp : NetworkBehaviour, IPlayerJoined, IPlayerLeft
                 }
 
             }
+        }
+    }
+    public void Update()
+    {
+        if ( Runner != null && Runner.IsServer && playerController == null)
+        {
+            playerController = PlayerController.Instance;
         }
     }
 
@@ -58,6 +66,7 @@ public class PlayerSp : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         {
             if (currentSpawnedPlayers.TryGetValue(playerRef, out var playerNetworkObject))
             {
+                currentSpawnedPlayers.Remove(playerRef);
                 Runner.Despawn(playerNetworkObject);
             }
         }
@@ -68,12 +77,29 @@ public class PlayerSp : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         SpawnPlayer(player);
     }
 
-    public void PlayerLeft(PlayerRef player)
+    public void PlayerLeft(PlayerRef playerRef)
     {
-        DeSpawnPlayer(player);
+      
+
+        if (currentSpawnedPlayers.TryGetValue(playerRef, out var playerNetworkObject))
+        {
+            PlayerController leavingPlayerController = playerNetworkObject.GetComponent<PlayerController>();
+            if (leavingPlayerController != null)
+            {
+                string leavingPlayerID = leavingPlayerController.myId.Value;
+               
+
+                playerController.RPC_RemovePlayerInfo(leavingPlayerID);
+               
+            }
+            DeSpawnPlayer(playerRef);
+            Debug.LogError($"PlayerRef {playerRef} has been despawned");
+        }
+        
     }
 
-   
+
+
     string GetRoomFromURL()
     {
         string roomName = "defaultRoom";

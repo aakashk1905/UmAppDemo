@@ -41,10 +41,19 @@ public class PlayerListManager : NetworkBehaviour
         }
         
     }
+    /*[Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_RequestRemovePlayerInfo(string id)
+    {
+        Debug.LogError("REquesting to remove");
+        if (Runner.IsServer)
+        {
+            RPC_RemovePlayerInfo(id);
+        }
+
+    }*/
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_AddPlayerInfo(string name, string id)
     {
-       /* Debug.LogError("dobara prayas krre" +  name + " " + id);*/
         foreach (var playerInfo in playerInfoList)
         {
             if (playerInfo.id == id)
@@ -56,14 +65,25 @@ public class PlayerListManager : NetworkBehaviour
         
     }
 
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_RequestRemovePlayerInfo(string id)
+    {
+        if (Runner.IsServer)
+        {
+            RPC_RemovePlayerInfo(id);
+        }
+    }
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_RemovePlayerInfo(string id)
     {
+        Debug.LogError("Removing player info");
         PlayerInfo playerToRemove = default;
         bool found = false;
         foreach (var playerInfo in playerInfoList)
         {
-            if (playerInfo.id == id)
+            if (playerInfo.id.ToString() == id)
             {
                 playerToRemove = playerInfo;
                 found = true;
@@ -73,9 +93,14 @@ public class PlayerListManager : NetworkBehaviour
         if (found)
         {
             playerInfoList.Remove(playerToRemove);
-            
+            Debug.Log($"Player {id} removed successfully.");
+        }
+        else
+        {
+            Debug.LogWarning($"Player {id} not found in the list.");
         }
     }
+
     public void AddPlayerInfo(string name, string id)
     {
         if (Runner.IsServer)
@@ -89,14 +114,20 @@ public class PlayerListManager : NetworkBehaviour
         
     }
 
+
     public void RemovePlayerInfo(string id)
     {
+        Debug.LogError(id);
         if (Runner.IsServer)
         {
             RPC_RemovePlayerInfo(id);
         }
-       
+        else
+        {
+            RPC_RequestRemovePlayerInfo(id);
+        }
     }
+
 
     public void OnPlayerListChanged()
     {
@@ -122,6 +153,16 @@ public struct PlayerInfo : INetworkStruct
 
     public bool Equals(PlayerInfo other)
     {
-        return name.Equals(other.name) && id.Equals(other.id);
+        return name.ToString() == other.name.ToString() && id.ToString() == other.id.ToString();
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is PlayerInfo other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return name.GetHashCode() ^ id.GetHashCode();
     }
 }

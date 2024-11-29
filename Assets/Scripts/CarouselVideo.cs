@@ -67,7 +67,7 @@ public class CarouselVideo : MonoBehaviour
         GameObject newPanel = Instantiate(panelPrefab, carouselPanelContainer.transform);
         newPanel.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
         //newPanel.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(0, 0, 1, 0);
-        newPanel.GetComponent<HorizontalLayoutGroup>().spacing = 0f;
+        newPanel.GetComponent<HorizontalLayoutGroup>().spacing = 1f;
         newPanel.SetActive(false); 
 
         panels.Add(newPanel);
@@ -93,7 +93,9 @@ public class CarouselVideo : MonoBehaviour
             fullscreenVideoSurface = Instantiate(fullscreenVideoSurfacePrefab, FullScreenPanel.transform);
 
             RawImage fullscreenRawImage = fullscreenVideoSurface.GetComponent<RawImage>();
-            fullscreenRawImage.texture = originalRawImage.texture; 
+            fullscreenRawImage.texture = originalRawImage.texture;
+
+            fullscreenVideoSurface.transform.Rotate(0f, 0f, -180f);
 
             FullScreenPanel.SetActive(true);
 
