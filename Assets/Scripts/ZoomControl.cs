@@ -44,7 +44,7 @@ public class ZoomControl : MonoBehaviour
             }
             else if (Input.GetAxis("Mouse ScrollWheel") != 0f) // Handle mouse zoom for desktops
             {
-                Zoom(Input.GetAxis("Mouse ScrollWheel"));
+                Zoom(-Input.GetAxis("Mouse ScrollWheel"));
             }
         }
 
@@ -70,7 +70,12 @@ public class ZoomControl : MonoBehaviour
 
     void UpdateZoomPercentageText()
     {
+        // Ensure the zoom value is clamped and the percentage is calculated correctly
         float zoomPercentage = (zoomOutMax - Camera.main.orthographicSize) / (zoomOutMax - zoomOutMin) * 100f;
+
+        // Clamping the zoom percentage between 0 and 100 for safety
+        zoomPercentage = Mathf.Clamp(zoomPercentage, 0f, 100f);
+
         zoomPercentageText.text = Mathf.RoundToInt(zoomPercentage) + "%";
     }
 

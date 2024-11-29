@@ -95,7 +95,7 @@ public class CarouselVideo : MonoBehaviour
             RawImage fullscreenRawImage = fullscreenVideoSurface.GetComponent<RawImage>();
             fullscreenRawImage.texture = originalRawImage.texture;
 
-            fullscreenVideoSurface.transform.Rotate(0f, 180f, 180f);
+            fullscreenVideoSurface.transform.Rotate(0f, 0f, -180f);
 
             FullScreenPanel.SetActive(true);
 
