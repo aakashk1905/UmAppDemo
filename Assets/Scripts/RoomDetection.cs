@@ -8,7 +8,7 @@ public class RoomDetection : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D collision)
     {
         BoxCollider2D mybox = GetComponent<BoxCollider2D>();
-        Debug.LogError(mybox.isTrigger);
+        /*Debug.LogError(mybox.isTrigger);*/
         if (!mybox.isTrigger)
         {
             return;
@@ -18,8 +18,7 @@ public class RoomDetection : MonoBehaviour
             PlayerController playerController = GetPlayerControllerFromRange(collision);
             if (playerController != null && !playerController.IsInRoom )
             {
-                RoomManager.Instance.SetCurrentRoom(roomName,playerController);
-                
+                RoomManager.Instance.SetCurrentRoom(roomName,playerController);   
             }
         }
     }

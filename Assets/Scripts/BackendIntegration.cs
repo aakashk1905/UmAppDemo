@@ -30,7 +30,7 @@ public class BackendIntegration : MonoBehaviour
        
         if (IsUserLoggedIn())
         {
-            SceneManager.LoadScene("PlayMobile");
+            SceneManager.LoadScene("figmaPlayMobile");
         }
         else
         {

@@ -39,7 +39,7 @@ public class RoomManager : MonoBehaviour
             }
         }
 
-        lockUnlockButton.onClick.AddListener(ToggleRoomLock);
+        /*lockUnlockButton.onClick.AddListener(ToggleRoomLock);*/
     }
 
     public bool spriteEnable;
@@ -59,7 +59,7 @@ public class RoomManager : MonoBehaviour
     public void ClearCurrentRoom(PlayerController playerController)
     {
         currentRoomName = null;
-        Debug.Log("Current room cleared. for " + playerController._playerID );
+      
         playerController.Rpc_LeaveChannel(playerController.Object.InputAuthority, playerController._channelName.Value);
         playerController.Rpc_UpdateIsInRoom(false);
         playerController.Rpc_SetChannelName("");

@@ -294,7 +294,6 @@ public class AgoraManager : MonoBehaviour
             Debug.LogError("It is nulll");
         }
 
-        // player.LogNetworkTable();
         Debug.LogError("Adding " + player._playerID + " " + channelName);
         string tempToken = GetTokenForChannel(channelName, player);
         player.isInChannel = true;
@@ -343,10 +342,11 @@ public class AgoraManager : MonoBehaviour
         }
     }
 
+
     private void JoinAgoraChannel(PlayerController player, string channelName, string token)
     {
         RtcEngine.JoinChannel(token, channelName, "", (uint)player._playerID);
-        RtcEngine.StartPreview();
+        /*RtcEngine.StartPreview();*/
 
     }
     [Rpc]
