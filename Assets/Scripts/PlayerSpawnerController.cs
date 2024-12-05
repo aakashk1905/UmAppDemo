@@ -53,9 +53,12 @@ public class PlayerSp : NetworkBehaviour, IPlayerJoined, IPlayerLeft
             {
                 spawnPosition = roomObject.transform.position; 
             }
-           
 
-            var playerObject = Runner.Spawn(playerNetworkPrefab, Vector3.zero, Quaternion.identity, playerRef);
+            float RandomX = UnityEngine.Random.Range(-1f, 1.9f);
+            float RandomY = UnityEngine.Random.Range(-8f, -6f);
+            Vector3 spawnPos = new Vector3(RandomX, RandomY, 0);
+
+            var playerObject = Runner.Spawn(playerNetworkPrefab, spawnPos, Quaternion.identity, playerRef);
             Runner.SetPlayerObject(playerRef, playerObject);
             AddToEntry(playerRef, playerObject);
         }

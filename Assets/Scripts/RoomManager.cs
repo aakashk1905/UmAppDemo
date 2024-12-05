@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using TMPro;
 
 public class RoomManager : MonoBehaviour
 {
@@ -11,7 +12,10 @@ public class RoomManager : MonoBehaviour
 
     private Dictionary<string, GameObject> roomToColliderMap = new Dictionary<string, GameObject>();
     public string currentRoomName;
-    public Button lockUnlockButton;
+    public Button lockRoom;
+
+    [SerializeField] private TextMeshProUGUI lockRoomText;
+    [SerializeField] private GameObject myDashBoarButton;
 
     private void Awake()
     {
@@ -28,6 +32,8 @@ public class RoomManager : MonoBehaviour
 
     void Start()
     {
+        lockRoom.gameObject.SetActive(false);
+
         for (int i = 0; i < roomPrefabs.Count; i++)
         {
             string roomName = roomPrefabs[i].GetComponent<RoomDetection>().roomName;
@@ -39,12 +45,16 @@ public class RoomManager : MonoBehaviour
             }
         }
 
-        /*lockUnlockButton.onClick.AddListener(ToggleRoomLock);*/
+        lockRoom.onClick.AddListener(ToggleRoomLock);
     }
 
     public bool spriteEnable;
     public void SetCurrentRoom(string roomName, PlayerController playerController)
     {
+        myDashBoarButton.SetActive(true);
+        string roomNameInitials = TransformString(roomName);
+        lockRoomText.text = "Lock Room : " + roomNameInitials;
+        lockRoom.gameObject.SetActive(true);
         currentRoomName = roomName; 
 
         if (playerController == null)
@@ -58,6 +68,10 @@ public class RoomManager : MonoBehaviour
 
     public void ClearCurrentRoom(PlayerController playerController)
     {
+        myDashBoarButton?.SetActive(false);
+        lockRoomText.text = "Lock Room";
+        lockRoom.gameObject.SetActive(false);
+
         currentRoomName = null;
       
         playerController.Rpc_LeaveChannel(playerController.Object.InputAuthority, playerController._channelName.Value);
@@ -65,15 +79,40 @@ public class RoomManager : MonoBehaviour
         playerController.Rpc_SetChannelName("");
         
     }
-    void ToggleRoomLock()
+
+    string TransformString(string input)
     {
-        if (!roomToColliderMap.TryGetValue(currentRoomName, out GameObject wallCollider))
+        // Split the string into words by spaces
+        string[] words = input.Split(' ');
+
+        // Initialize an empty string to store the result
+        string result = "";
+
+        // Loop through the words (except the last one, which is a number)
+        for (int i = 0; i < words.Length - 1; i++)
         {
-            Debug.LogWarning("No valid wall collider found to lock/unlock for room: " + currentRoomName);
-            return;
+            // Add the first letter of each word
+            result += words[i][0];
         }
 
-        wallCollider.SetActive(!wallCollider.activeSelf);
-        Debug.Log((wallCollider.activeSelf ? "Locked" : "Unlocked") + " room: " + currentRoomName);
+        // Add the last part (the number) without change
+        result += words[words.Length - 1];
+
+        return result;
+    }
+    void ToggleRoomLock()
+    {
+        //if (!roomToColliderMap.TryGetValue(currentRoomName, out GameObject wallCollider))
+        //{
+        //    Debug.LogWarning("No valid wall collider found to lock/unlock for room: " + currentRoomName);
+        //    return;
+        //}
+
+        //wallCollider.SetActive(!wallCollider.activeSelf);
+        //Debug.Log((wallCollider.activeSelf ? "Locked" : "Unlocked") + " room: " + currentRoomName);
+
+        RoomDetection currentRoom = GameObject.Find(currentRoomName).GetComponent<RoomDetection>();
+
+        currentRoom.LockRoom();
     }
 }

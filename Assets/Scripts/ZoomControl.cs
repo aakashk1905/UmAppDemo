@@ -18,8 +18,8 @@ public class ZoomControl : MonoBehaviour
 
     void Start()
     {
-        zoomInButton.onClick.AddListener(() => Zoom(0.5f));
-        zoomOutButton.onClick.AddListener(() => Zoom(-0.5f));
+        zoomInButton.onClick.AddListener(() => Zoom(-0.5f));
+        zoomOutButton.onClick.AddListener(() => Zoom(0.5f));
         refocusButton.onClick.AddListener(Refocus);
     }
 

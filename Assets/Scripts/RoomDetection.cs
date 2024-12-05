@@ -2,10 +2,34 @@ using UnityEngine;
 
 public class RoomDetection : MonoBehaviour
 {
+    public Transform lockRoomGameobject;
+
     public string roomName;
 
+    private void Start()
+    {
+        gameObject.name = roomName;
+    }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    //private void OnTriggerEnter2D(Collider2D collision)
+    //{
+    //    BoxCollider2D mybox = GetComponent<BoxCollider2D>();
+    //    /*Debug.LogError(mybox.isTrigger);*/
+    //    if (!mybox.isTrigger)
+    //    {
+    //        return;
+    //    }
+    //    if (collision.CompareTag("Range") )
+    //    {
+    //        PlayerController playerController = GetPlayerControllerFromRange(collision);
+    //        if (playerController != null && !playerController.IsInRoom )
+    //        {
+    //            RoomManager.Instance.SetCurrentRoom(roomName,playerController);   
+    //        }
+    //    }
+    //}
+
+    private void OnTriggerStay2D(Collider2D collision)
     {
         BoxCollider2D mybox = GetComponent<BoxCollider2D>();
         /*Debug.LogError(mybox.isTrigger);*/
@@ -13,12 +37,12 @@ public class RoomDetection : MonoBehaviour
         {
             return;
         }
-        if (collision.CompareTag("Range") )
+        if (collision.CompareTag("Range"))
         {
             PlayerController playerController = GetPlayerControllerFromRange(collision);
-            if (playerController != null && !playerController.IsInRoom )
+            if (playerController != null && !playerController.IsInRoom)
             {
-                RoomManager.Instance.SetCurrentRoom(roomName,playerController);   
+                RoomManager.Instance.SetCurrentRoom(roomName, playerController);
             }
         }
     }
@@ -55,5 +79,18 @@ public class RoomDetection : MonoBehaviour
             Debug.LogError("Could not find parent of Range object");
             return null;
         }
+    }
+
+    public void LockRoom()
+    {
+        if(!lockRoomGameobject.gameObject.activeSelf)
+        {
+            lockRoomGameobject.gameObject.SetActive(true);
+        }
+        else
+        {
+            lockRoomGameobject.gameObject.SetActive(false);
+        }
+
     }
 }
